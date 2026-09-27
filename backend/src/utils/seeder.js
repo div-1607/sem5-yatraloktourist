@@ -2445,6 +2445,9 @@ const seedData = async () => {
       mobile: '+91 99887 76655',
       city: 'New Delhi',
       address: 'Central Secretariat, New Delhi',
+      lastLogin: new Date(),
+      isOnline: true,
+      loginCount: 12,
     });
 
     // 3. Seed Default Tourist User
@@ -2460,6 +2463,9 @@ const seedData = async () => {
       mobile: '+91 98765 43210',
       city: 'New Delhi',
       address: 'Connaught Place, New Delhi',
+      lastLogin: new Date(Date.now() - 1000 * 60 * 18),
+      isOnline: true,
+      loginCount: 4,
     });
 
     // 4. Seed Destinations
