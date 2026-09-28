@@ -27,12 +27,14 @@ const createSOS = async (req, res, next) => {
     const resolvedName = userName || (req.user ? req.user.name : 'Tourist Traveler');
     const resolvedMobile = userMobile || (req.user ? req.user.mobile : 'GPS Broadcast Signal');
     const resolvedEmail = userEmail || (req.user ? req.user.email : '');
+    const resolvedDigitalId = req.body.digitalId || (req.user ? req.user.digitalId : 'GUEST-UNREGISTERED');
 
     const sos = await SOSRequest.create({
       user: req.user ? req.user._id : null,
       userName: resolvedName,
       userMobile: resolvedMobile,
       userEmail: resolvedEmail,
+      digitalId: resolvedDigitalId,
       location: {
         lat: Number(location.lat),
         lng: Number(location.lng),

@@ -35,9 +35,16 @@ const getAnalytics = async (req, res, next) => {
 
     // Users signed in (sorted by recent login / activity)
     const signedInUsers = await User.find()
-      .select('name email mobile city address role isVerified isActive lastLogin isOnline loginCount createdAt updatedAt')
+      .select('name email mobile city address role digitalId chosenDestination favorites isVerified isActive lastLogin isOnline loginCount createdAt updatedAt')
+      .populate('favorites', 'title city category')
       .sort({ lastLogin: -1, updatedAt: -1 })
-      .limit(30);
+      .limit(50);
+
+    // All registered tourists (past & present)
+    const allRegistrations = await User.find({ role: 'tourist' })
+      .select('name email mobile city address digitalId chosenDestination favorites isVerified isActive lastLogin isOnline loginCount createdAt')
+      .populate('favorites', 'title city category')
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -54,6 +61,7 @@ const getAnalytics = async (req, res, next) => {
         recentSOS,
         recentReviews,
         signedInUsers,
+        allRegistrations,
       },
     });
   } catch (error) {
@@ -69,13 +77,122 @@ const getAnalytics = async (req, res, next) => {
 const getSignedInUsers = async (req, res, next) => {
   try {
     const users = await User.find()
-      .select('name email mobile city address role isVerified isActive lastLogin isOnline loginCount createdAt updatedAt')
+      .select('name email mobile city address role digitalId chosenDestination favorites isVerified isActive lastLogin isOnline loginCount createdAt updatedAt')
+      .populate('favorites', 'title city category')
       .sort({ lastLogin: -1, updatedAt: -1 });
 
     res.status(200).json({
       success: true,
       count: users.length,
       data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Track detailed tourist profile by Digital ID or email
+ * @route   GET /api/admin/tourist/:digitalId
+ * @access  Private (Admin)
+ */
+const trackTouristByDigitalId = async (req, res, next) => {
+  try {
+    const { digitalId } = req.params;
+    const cleanQuery = digitalId.trim();
+
+    const tourist = await User.findOne({
+      $or: [
+        { digitalId: cleanQuery.toUpperCase() },
+        { digitalId: { $regex: cleanQuery, $options: 'i' } },
+        { email: cleanQuery.toLowerCase() },
+        { mobile: cleanQuery },
+        { name: { $regex: cleanQuery, $options: 'i' } },
+      ],
+    }).populate('favorites', 'title city category images crowdStatus rating');
+
+    if (!tourist) {
+      return res.status(404).json({
+        success: false,
+        message: `No tourist identity found matching "${cleanQuery}".`,
+      });
+    }
+
+    const reviews = await Review.find({ user: tourist._id })
+      .populate('destination', 'title city images')
+      .sort({ createdAt: -1 });
+
+    const sosAlerts = await SOSRequest.find({
+      $or: [{ user: tourist._id }, { userMobile: tourist.mobile }, { userEmail: tourist.email }],
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        tourist,
+        reviews,
+        sosAlerts,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get consolidated tourist live activity stream
+ * @route   GET /api/admin/activity
+ * @access  Private (Admin)
+ */
+const getTouristActivityStream = async (req, res, next) => {
+  try {
+    const users = await User.find({ role: 'tourist' })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .select('name email mobile city digitalId createdAt');
+
+    const sosList = await SOSRequest.find()
+      .sort({ createdAt: -1 })
+      .limit(15);
+
+    const reviews = await Review.find()
+      .populate('user', 'name digitalId')
+      .populate('destination', 'title')
+      .sort({ createdAt: -1 })
+      .limit(15);
+
+    const activities = [
+      ...users.map((u) => ({
+        id: `reg-${u._id}`,
+        type: 'REGISTRATION',
+        title: 'New Tourist Registration',
+        description: `${u.name} registered under Digital ID ${u.digitalId || 'YL-IND-PENDING'}`,
+        timestamp: u.createdAt,
+        user: { name: u.name, email: u.email, digitalId: u.digitalId, mobile: u.mobile, city: u.city },
+      })),
+      ...sosList.map((s) => ({
+        id: `sos-${s._id}`,
+        type: 'SOS_ALERT',
+        title: 'Emergency Distress Broadcast',
+        description: `Signal dispatched by ${s.userName} (${s.digitalId || 'GUEST'}) at ${s.location?.address}`,
+        timestamp: s.createdAt,
+        status: s.status,
+        user: { name: s.userName, mobile: s.userMobile, digitalId: s.digitalId },
+      })),
+      ...reviews.map((r) => ({
+        id: `rev-${r._id}`,
+        type: 'REVIEW',
+        title: 'Tourist Destination Review',
+        description: `${r.user?.name || 'Tourist'} reviewed "${r.destination?.title}" (${r.rating}★)`,
+        timestamp: r.createdAt,
+        user: { name: r.user?.name, digitalId: r.user?.digitalId },
+      })),
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.status(200).json({
+      success: true,
+      count: activities.length,
+      data: activities,
     });
   } catch (error) {
     next(error);
@@ -230,6 +347,7 @@ const getUsers = async (req, res, next) => {
     const total = await User.countDocuments(query);
     const users = await User.find(query)
       .select('-password')
+      .populate('favorites', 'title city category')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
@@ -305,6 +423,8 @@ const reseedDatabase = async (req, res, next) => {
 module.exports = {
   getAnalytics,
   getSignedInUsers,
+  trackTouristByDigitalId,
+  getTouristActivityStream,
   createDestination,
   updateDestination,
   deleteDestination,

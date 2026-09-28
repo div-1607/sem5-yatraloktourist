@@ -169,41 +169,58 @@ const TouristDashboard = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Full Name</span>
-                  <span className="text-white font-semibold">{user?.name}</span>
+                  <span className="text-slate-400 block text-[11px]">Tourist Digital ID</span>
+                  <span className="font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 text-xs inline-block mt-0.5">
+                    {user?.digitalId || 'YL-IND-PENDING'}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Email Address</span>
-                  <span className="text-white font-semibold truncate block">{user?.email}</span>
+                  <span className="text-slate-400 block text-[11px]">Destination Chosen</span>
+                  <span className="text-amber-300 font-semibold truncate block mt-0.5">
+                    {user?.chosenDestination || 'None selected yet'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[11px]">Emergency Mobile</span>
-                  <span className="text-white font-semibold">{user?.mobile || 'Not set'}</span>
+                  <span className="text-white font-semibold font-mono block mt-0.5">{user?.mobile || 'Not set'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[11px]">Home City</span>
-                  <span className="text-white font-semibold">{user?.city || 'Not set'}</span>
+                  <span className="text-white font-semibold block mt-0.5">{user?.city || 'Not set'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Full Name</span>
+                  <span className="text-white font-semibold block mt-0.5">{user?.name}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Email Address</span>
+                  <span className="text-white font-semibold truncate block mt-0.5">{user?.email}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[11px]">Age / Gender</span>
-                  <span className="text-white font-semibold">
+                  <span className="text-white font-semibold block mt-0.5">
                     {user?.age} Yrs &bull; {user?.gender}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[11px]">Status</span>
-                  <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                  <span className="text-slate-400 block text-[11px]">Passport Status</span>
+                  <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold mt-0.5">
                     <CheckCircle className="w-3 h-3" />
-                    <span>Verified Citizen</span>
+                    <span>Verified Active</span>
                   </span>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <span className="text-slate-400 block text-[11px]">Permanent Address</span>
-                <span className="text-slate-200 text-xs">{user?.address || 'Not specified'}</span>
+              <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="text-slate-400 block text-[11px]">Permanent Address</span>
+                  <span className="text-slate-200 text-xs">{user?.address || 'Not specified'}</span>
+                </div>
+                <div className="text-[11px] text-amber-300 font-mono">
+                  Trackable by Central Operations Command Center
+                </div>
               </div>
             </div>
 

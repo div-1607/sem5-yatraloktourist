@@ -30,9 +30,9 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, expectedRole = null) => {
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', { email, password, expectedRole });
       if (res.data.success) {
         const { token, user } = res.data;
         localStorage.setItem('yatralok_token', token);

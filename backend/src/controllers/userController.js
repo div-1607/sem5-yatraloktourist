@@ -25,7 +25,7 @@ const getProfile = async (req, res, next) => {
  */
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, mobile, city, address, age, gender } = req.body;
+    const { name, mobile, city, address, age, gender, chosenDestination } = req.body;
 
     const user = await User.findById(req.user.id);
     if (!user) {
@@ -38,6 +38,7 @@ const updateProfile = async (req, res, next) => {
     if (address) user.address = address;
     if (age) user.age = age;
     if (gender) user.gender = gender;
+    if (chosenDestination !== undefined) user.chosenDestination = chosenDestination;
 
     const updatedUser = await user.save();
 

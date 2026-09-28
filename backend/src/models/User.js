@@ -75,12 +75,23 @@ const userSchema = new mongoose.Schema(
         ref: 'Destination',
       },
     ],
+    chosenDestination: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     recentSearches: [
       {
         type: String,
         trim: true,
       },
     ],
+    digitalId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
     lastLogin: {
       type: Date,
       default: null,
@@ -98,6 +109,15 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Pre-save hook: auto-generate Digital ID for tourists if not present
+userSchema.pre('save', async function (next) {
+  if (this.role === 'tourist' && !this.digitalId) {
+    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+    this.digitalId = `YL-IND-${randomSuffix}`;
+  }
+  next();
+});
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

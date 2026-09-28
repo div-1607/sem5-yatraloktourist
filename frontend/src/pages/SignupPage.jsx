@@ -32,6 +32,7 @@ const SignupPage = () => {
     mobile: '',
     city: '',
     address: '',
+    chosenDestination: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -289,6 +290,52 @@ const SignupPage = () => {
                   onChange={handleChange}
                   className="glass-input w-full text-xs"
                 />
+              </div>
+            </div>
+
+            {/* Destination of Choice / Travel Plan */}
+            <div className="p-3.5 rounded-xl bg-navy-900/60 border border-amber-500/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-amber-300">
+                  Target Destination / Place You Wish to Visit *
+                </label>
+                <span className="text-[10px] text-slate-400">Recorded in Tourist Digital Passport</span>
+              </div>
+              <div className="relative">
+                <Compass className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
+                <input
+                  type="text"
+                  name="chosenDestination"
+                  required
+                  placeholder="e.g. Red Fort (Delhi), Taj Mahal (Agra), Amer Fort (Jaipur)..."
+                  value={formData.chosenDestination}
+                  onChange={handleChange}
+                  className="glass-input w-full pl-10 text-xs text-white"
+                />
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[
+                  'Red Fort, Delhi',
+                  'Taj Mahal, Agra',
+                  'Amer Fort, Jaipur',
+                  'India Gate, Delhi',
+                  'Rajwada Palace, Indore',
+                  'Kashi Vishwanath, Varanasi',
+                  'Marine Drive, Mumbai',
+                ].map((dest) => (
+                  <button
+                    key={dest}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, chosenDestination: dest })}
+                    className={`text-[10px] px-2 py-0.5 rounded-md border transition-all ${
+                      formData.chosenDestination === dest
+                        ? 'bg-amber-400 text-navy-950 font-bold border-amber-400'
+                        : 'bg-white/5 text-slate-300 hover:text-white border-white/10 hover:border-amber-400/40'
+                    }`}
+                  >
+                    + {dest}
+                  </button>
+                ))}
               </div>
             </div>
 

@@ -2450,25 +2450,7 @@ const seedData = async () => {
       loginCount: 12,
     });
 
-    // 3. Seed Default Tourist User
-    console.log('[Seeder] Seeding tourist user (tourist@yatralok.com)...');
-    const touristUser = await User.create({
-      name: 'Aarav Sharma',
-      email: 'tourist@yatralok.com',
-      password: 'Tourist@123',
-      role: 'tourist',
-      isVerified: true,
-      age: 26,
-      gender: 'Male',
-      mobile: '+91 98765 43210',
-      city: 'New Delhi',
-      address: 'Connaught Place, New Delhi',
-      lastLogin: new Date(Date.now() - 1000 * 60 * 18),
-      isOnline: true,
-      loginCount: 4,
-    });
-
-    // 4. Seed Destinations
+    // 3. Seed Destinations
     console.log('[Seeder] Seeding destinations across Delhi, Ghaziabad, Aligarh, Meerut, Agra, Indore, Jaipur, Mumbai...');
     const preparedDestinations = sampleDestinations.map((d, index) => ({
       ...d,
@@ -2490,61 +2472,10 @@ const seedData = async () => {
     });
     console.log('[Seeder] City Breakdown:', citiesBreakdown);
 
-    // Attach favorites to tourist
-    touristUser.favorites = [createdDestinations[0]._id, createdDestinations[2]._id];
-    touristUser.recentSearches = ['Red Fort', 'India Gate', 'Doodheshwar Nath', 'Amer Fort', 'Rajwada Palace'];
-    await touristUser.save();
-
-    // 5. Seed Reviews
-    console.log('[Seeder] Seeding reviews...');
-    await Review.create([
-      {
-        destination: createdDestinations[0]._id, // Red Fort
-        user: touristUser._id,
-        rating: 5,
-        comment: 'Absolute architectural marvel! Recommend arriving early morning to avoid rush and capture pristine photos of the Lahore Gate.',
-      },
-      {
-        destination: createdDestinations[2]._id, // India Gate
-        user: touristUser._id,
-        rating: 5,
-        comment: 'The newly renovated Kartavya Path and National War Memorial are immaculate. Beautiful evening lighting with serene atmosphere.',
-      },
-      {
-        destination: createdDestinations[5]._id, // Akshardham
-        user: touristUser._id,
-        rating: 5,
-        comment: 'The Sahaj Anand water laser show in the evening is truly world-class. Peaceful and deeply cultural.',
-      },
-      {
-        destination: createdDestinations[6]._id, // Bangla Sahib
-        user: touristUser._id,
-        rating: 5,
-        comment: 'The spiritual aura here is unforgettable. Sitting by the Sarovar brings complete peace, and the Langar was served with immense love.',
-      },
-    ]);
-
-    // 6. Seed Sample Active SOS Signal
-    console.log('[Seeder] Seeding sample active emergency SOS distress signal...');
-    await SOSRequest.create({
-      user: touristUser._id,
-      userName: 'Aarav Sharma',
-      userEmail: 'tourist@yatralok.com',
-      userMobile: '+91 98765 43210',
-      location: {
-        lat: 28.6129,
-        lng: 77.2295,
-        address: 'Near India Gate C-Hexagon, Central Delhi',
-      },
-      emergencyType: 'Medical',
-      message: 'Tourist experienced heat exhaustion near lawns, requesting first-aid assistance.',
-      status: 'pending',
-    });
-
     console.log('\n==================================================');
     console.log('✅ [YATRA LOK SEEDING COMPLETE]');
     console.log('Admin Account:   admin@yatralok.com   | Password: Admin@123');
-    console.log('Tourist Account: tourist@yatralok.com | Password: Tourist@123');
+    console.log('Tourist Accounts: None seeded (real tourists register live)');
     console.log(`Total Destinations Seeded: ${createdDestinations.length}`);
     console.log('==================================================\n');
   } catch (error) {

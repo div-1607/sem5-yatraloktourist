@@ -10,7 +10,7 @@ const { sendOTPEmail } = require('../config/email');
  */
 const register = async (req, res, next) => {
   try {
-    const { name, age, gender, email, mobile, city, address, password } = req.body;
+    const { name, age, gender, email, mobile, city, address, password, chosenDestination } = req.body;
 
     if (!name || !email || !password || !mobile || !city || !address || !age || !gender) {
       return res.status(400).json({
@@ -32,6 +32,7 @@ const register = async (req, res, next) => {
         existingUser.address = address;
         existingUser.age = age;
         existingUser.gender = gender;
+        if (chosenDestination) existingUser.chosenDestination = chosenDestination;
         existingUser.password = password; // pre-save will re-hash
         await existingUser.save();
 
@@ -54,6 +55,7 @@ const register = async (req, res, next) => {
     }
 
     const otpData = generateOTP();
+    const digitalId = `YL-IND-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const user = await User.create({
       name,
@@ -64,6 +66,9 @@ const register = async (req, res, next) => {
       mobile,
       city,
       address,
+      chosenDestination: chosenDestination || '',
+      role: 'tourist', // strictly tourist for all new registrations
+      digitalId,
       isVerified: false,
       otp: otpData,
     });
@@ -75,6 +80,7 @@ const register = async (req, res, next) => {
       message: 'Registration successful! A 6-digit verification OTP has been sent to your email inbox.',
       data: {
         email: user.email,
+        digitalId: user.digitalId,
         requiresVerification: true,
       },
     });
@@ -134,6 +140,9 @@ const verifyOTP = async (req, res, next) => {
     user.lastLogin = new Date();
     user.isOnline = true;
     user.loginCount = (user.loginCount || 0) + 1;
+    if (user.role === 'tourist' && !user.digitalId) {
+      user.digitalId = `YL-IND-${Math.floor(100000 + Math.random() * 900000)}`;
+    }
     user.otp = { code: null, expiresAt: null };
     await user.save();
 
@@ -148,6 +157,7 @@ const verifyOTP = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        digitalId: user.digitalId,
         age: user.age,
         gender: user.gender,
         mobile: user.mobile,
@@ -208,7 +218,7 @@ const resendOTP = async (req, res, next) => {
  */
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, expectedRole } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -224,6 +234,14 @@ const login = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password credentials.',
+      });
+    }
+
+    // Role Enforcement for Admin Portal
+    if (expectedRole === 'admin' && user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: This administrative portal is strictly restricted to the Verified Master Administrator.',
       });
     }
 
@@ -257,6 +275,11 @@ const login = async (req, res, next) => {
       });
     }
 
+    // Ensure tourist has digitalId
+    if (user.role === 'tourist' && !user.digitalId) {
+      user.digitalId = `YL-IND-${Math.floor(100000 + Math.random() * 900000)}`;
+    }
+
     // Record sign-in timestamp & status
     user.lastLogin = new Date();
     user.isOnline = true;
@@ -267,13 +290,14 @@ const login = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Login successful.',
+      message: user.role === 'admin' ? 'Master Admin verified. Access granted.' : 'Login successful.',
       token,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        digitalId: user.digitalId || null,
         age: user.age,
         gender: user.gender,
         mobile: user.mobile,

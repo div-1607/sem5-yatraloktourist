@@ -19,6 +19,10 @@ const sosRequestSchema = new mongoose.Schema(
       type: String,
       default: 'Emergency GPS Broadcast',
     },
+    digitalId: {
+      type: String,
+      default: 'GUEST-UNREGISTERED',
+    },
     emergencyType: {
       type: String,
       default: 'Emergency SOS',

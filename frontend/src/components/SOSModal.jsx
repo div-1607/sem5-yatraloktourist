@@ -88,6 +88,7 @@ const SOSModal = ({ isOpen, onClose }) => {
         userName: user?.name || 'Tourist Traveler',
         userMobile: user?.mobile || 'Emergency Broadcast',
         userEmail: user?.email || '',
+        digitalId: user?.digitalId || 'GUEST-UNREGISTERED',
         location: activeLocation,
         emergencyType: 'Emergency SOS',
         message: 'Live GPS location distress signal transmitted to Admin Command Center.',
@@ -97,6 +98,28 @@ const SOSModal = ({ isOpen, onClose }) => {
       if (res.data.success) {
         setDispatchedTicket(res.data.data);
         toast.success('Live Location Transmitted to Admin Dashboard!');
+
+        // Broadcast to Admin Dashboard immediately across tabs/windows
+        try {
+          const bc = new BroadcastChannel('yatralok_emergency_channel');
+          bc.postMessage({
+            type: 'SOS_CLICKED',
+            data: res.data.data,
+            timestamp: Date.now(),
+          });
+          bc.close();
+        } catch (e) {}
+
+        try {
+          localStorage.setItem(
+            'yatralok_latest_sos_event',
+            JSON.stringify({
+              id: res.data.data?._id || Date.now(),
+              data: res.data.data,
+              timestamp: Date.now(),
+            })
+          );
+        } catch (e) {}
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to transmit location to admin');

@@ -3,6 +3,8 @@ const router = express.Router();
 const {
   getAnalytics,
   getSignedInUsers,
+  trackTouristByDigitalId,
+  getTouristActivityStream,
   createDestination,
   updateDestination,
   deleteDestination,
@@ -18,6 +20,8 @@ router.use(protect, adminOnly);
 
 router.get('/analytics', getAnalytics);
 router.get('/signed-in-users', getSignedInUsers);
+router.get('/tourist/:digitalId', trackTouristByDigitalId);
+router.get('/activity', getTouristActivityStream);
 router.post('/reseed', reseedDatabase);
 
 // Destinations CRUD
