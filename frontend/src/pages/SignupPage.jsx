@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   User,
   Mail,
@@ -14,6 +15,9 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -78,66 +82,87 @@ const SignupPage = () => {
     }
 
     setSubmitting(true);
-    const res = await register(formData);
+    const result = await register(formData);
     setSubmitting(false);
 
-    if (res?.success) {
-      setActiveEmail(res.email);
+    if (result.success) {
+      setActiveEmail(formData.email);
       setShowOtpModal(true);
+      toast.success(result.message || 'OTP verification code generated!');
     }
   };
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otpCode || otpCode.trim().length !== 6) {
-      toast.error('Please enter the 6-digit OTP.');
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error('Please enter the 6-digit OTP code.');
       return;
     }
 
     setVerifyingOtp(true);
-    const res = await verifyOTP(activeEmail, otpCode.trim());
+    const result = await verifyOTP(activeEmail, otpCode);
     setVerifyingOtp(false);
 
-    if (res?.success) {
-      setShowOtpModal(false);
+    if (result.success) {
+      toast.success('Identity verified! Digital Tourist ID issued.');
       navigate('/dashboard');
     }
   };
 
   const handleResend = async () => {
-    await resendOTP(activeEmail);
+    const res = await resendOTP(activeEmail);
+    if (res.success) {
+      toast.success(res.message || 'New OTP generated and displayed on screen.');
+    }
   };
 
-
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-xl space-y-6">
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black-deep py-12 px-4">
+      {/* Background with Ambient Glow */}
+      <div className="absolute inset-0 z-0">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=2000&q=85)`,
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black-deep via-black-deep/85 to-navy-950/80 backdrop-blur-[3px]" />
+        <div className="absolute top-10 left-10 w-96 h-96 bg-blue-electric/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-royal/25 rounded-full blur-[140px] pointer-events-none" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-xl space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-glow-amber">
-              <div className="w-full h-full bg-navy-950 rounded-[10px] flex items-center justify-center">
-                <Compass className="w-5 h-5 text-amber-400 group-hover:rotate-45 transition-transform" />
+          <Link to="/" className="inline-flex items-center gap-3 group">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-royal to-blue-electric p-0.5 shadow-glow-electric">
+              <div className="w-full h-full bg-black-deep rounded-[14px] flex items-center justify-center">
+                <Compass className="w-6 h-6 text-blue-neon group-hover:rotate-45 transition-transform" />
               </div>
             </div>
-            <span className="text-2xl font-extrabold tracking-wider text-white">
-              YATRA LOK
+            <span className="text-2xl font-black tracking-wider text-white">
+              YATRA<span className="text-blue-electric">LOK</span>
             </span>
           </Link>
-          <h2 className="text-xl font-bold text-white">Create Tourist Account</h2>
-          <p className="text-xs text-slate-400">
-            Join thousands of smart travelers exploring India with crowd safety
+          <h2 className="text-2xl font-bold text-white">Create Digital Tourist Account</h2>
+          <p className="text-xs text-slate-300 font-medium">
+            Join thousands of smart travelers with live GPS geofencing & crowd safety
           </p>
         </div>
 
         {/* Glass Form Card */}
-        <div className="glass-card p-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="rounded-3xl bg-black-midnight/70 backdrop-blur-3xl border border-blue-electric/30 p-8 shadow-glass-panel"
+        >
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name & Age */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Full Name *
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Full Legal Name *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -154,7 +179,7 @@ const SignupPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Age *
                 </label>
                 <div className="relative">
@@ -177,7 +202,7 @@ const SignupPage = () => {
             {/* Gender & Mobile */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Gender *
                 </label>
                 <select
@@ -186,15 +211,15 @@ const SignupPage = () => {
                   onChange={handleChange}
                   className="glass-input w-full text-xs"
                 >
-                  <option value="Male" className="bg-navy-950 text-white">Male</option>
-                  <option value="Female" className="bg-navy-950 text-white">Female</option>
-                  <option value="Other" className="bg-navy-950 text-white">Other</option>
+                  <option value="Male" className="bg-black-midnight text-white">Male</option>
+                  <option value="Female" className="bg-black-midnight text-white">Female</option>
+                  <option value="Other" className="bg-black-midnight text-white">Other</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Mobile Number *
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Emergency Mobile *
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -214,7 +239,7 @@ const SignupPage = () => {
             {/* Email & Password */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Email Address *
                 </label>
                 <div className="relative">
@@ -223,7 +248,7 @@ const SignupPage = () => {
                     type="email"
                     name="email"
                     required
-                    placeholder="name@domain.com"
+                    placeholder="aarav@example.com"
                     value={formData.email}
                     onChange={handleChange}
                     className="glass-input w-full pl-10 text-xs"
@@ -232,8 +257,8 @@ const SignupPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Password *
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Secret Key / Password *
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -241,7 +266,7 @@ const SignupPage = () => {
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     required
-                    placeholder="Min 6 characters"
+                    placeholder="••••••••••••"
                     value={formData.password}
                     onChange={handleChange}
                     className="glass-input w-full pl-10 pr-10 text-xs"
@@ -249,7 +274,7 @@ const SignupPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -258,9 +283,9 @@ const SignupPage = () => {
             </div>
 
             {/* City & Address */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Home City *
                 </label>
                 <div className="relative">
@@ -269,7 +294,7 @@ const SignupPage = () => {
                     type="text"
                     name="city"
                     required
-                    placeholder="e.g. New Delhi"
+                    placeholder="e.g. Mumbai, Maharashtra"
                     value={formData.city}
                     onChange={handleChange}
                     className="glass-input w-full pl-10 text-xs"
@@ -277,15 +302,15 @@ const SignupPage = () => {
                 </div>
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Street Address *
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Permanent Address *
                 </label>
                 <input
                   type="text"
                   name="address"
                   required
-                  placeholder="e.g. 14 Connaught Place, Block B"
+                  placeholder="Street / Locality"
                   value={formData.address}
                   onChange={handleChange}
                   className="glass-input w-full text-xs"
@@ -293,147 +318,81 @@ const SignupPage = () => {
               </div>
             </div>
 
-            {/* Destination of Choice / Travel Plan */}
-            <div className="p-3.5 rounded-xl bg-navy-900/60 border border-amber-500/20 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-amber-300">
-                  Target Destination / Place You Wish to Visit *
-                </label>
-                <span className="text-[10px] text-slate-400">Recorded in Tourist Digital Passport</span>
-              </div>
-              <div className="relative">
-                <Compass className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" />
-                <input
-                  type="text"
-                  name="chosenDestination"
-                  required
-                  placeholder="e.g. Red Fort (Delhi), Taj Mahal (Agra), Amer Fort (Jaipur)..."
-                  value={formData.chosenDestination}
-                  onChange={handleChange}
-                  className="glass-input w-full pl-10 text-xs text-white"
-                />
-              </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {[
-                  'Red Fort, Delhi',
-                  'Taj Mahal, Agra',
-                  'Amer Fort, Jaipur',
-                  'India Gate, Delhi',
-                  'Rajwada Palace, Indore',
-                  'Kashi Vishwanath, Varanasi',
-                  'Marine Drive, Mumbai',
-                ].map((dest) => (
-                  <button
-                    key={dest}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, chosenDestination: dest })}
-                    className={`text-[10px] px-2 py-0.5 rounded-md border transition-all ${
-                      formData.chosenDestination === dest
-                        ? 'bg-amber-400 text-navy-950 font-bold border-amber-400'
-                        : 'bg-white/5 text-slate-300 hover:text-white border-white/10 hover:border-amber-400/40'
-                    }`}
-                  >
-                    + {dest}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Submit */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={submitting}
-              className="glass-button-primary w-full py-3.5 text-xs uppercase tracking-wider flex items-center justify-center gap-2 mt-4"
+              className="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-blue-royal via-blue-electric to-blue-royal hover:from-blue-600 hover:to-blue-electric transition-all shadow-glow-electric flex items-center justify-center gap-2 cursor-pointer mt-4"
             >
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Initiating Registration...</span>
+                  <span>Generating Digital Identity...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Register & Verify Email OTP</span>
+                  <span>Create Digital Tourist Account</span>
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          <div className="text-center pt-4 border-t border-white/10 text-xs text-slate-400 mt-4">
-            Already registered on Yatra Lok?{' '}
-            <Link
-              to="/login"
-              className="text-amber-400 hover:text-amber-300 font-bold ml-1"
-            >
-              Sign In Here
+          {/* Login Link */}
+          <div className="mt-6 text-center text-xs text-slate-400 pt-4 border-t border-white/10">
+            Already registered?{' '}
+            <Link to="/login" className="text-blue-neon font-bold hover:underline">
+              Access Your Portal
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* EMAIL OTP VERIFICATION MODAL */}
+      {/* OTP Verification Modal */}
       {showOtpModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-navy-900 border border-white/20 rounded-2xl p-6 shadow-2xl space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 mx-auto flex items-center justify-center">
-                <KeyRound className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white">Verify Your Email</h3>
-              <p className="text-xs text-slate-300">
-                We've sent a 6-digit OTP to{' '}
-                <span className="text-amber-400 font-semibold">{activeEmail}</span>
-              </p>
-              <p className="text-[11px] text-slate-500">
-                Check your inbox (and spam/junk folder if not found)
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-2xl">
+          <div className="w-full max-w-sm rounded-3xl bg-black-midnight/90 border border-blue-electric/40 p-6 sm:p-8 space-y-5 text-center shadow-glass-panel">
+            <div className="w-12 h-12 rounded-2xl bg-blue-royal/50 border border-blue-electric/40 flex items-center justify-center text-blue-neon mx-auto shadow-glow-electric">
+              <KeyRound className="w-6 h-6 animate-pulse" />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-white">Enter Verification OTP</h3>
+              <p className="text-xs text-slate-300 mt-1">
+                Enter the 6-digit code sent to <span className="font-bold text-white">{activeEmail}</span>
               </p>
             </div>
 
-
             <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 text-center">
-                  Enter 6-Digit OTP Code
-                </label>
-                <input
-                  type="text"
-                  maxLength="6"
-                  required
-                  autoFocus
-                  placeholder="123456"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full text-center text-2xl font-mono tracking-[0.5em] font-extrabold glass-input py-3"
-                />
-              </div>
+              <input
+                type="text"
+                maxLength="6"
+                placeholder="123456"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                className="w-full text-center text-2xl font-mono tracking-widest glass-input py-3 font-bold text-white"
+                required
+                autoFocus
+              />
 
               <button
                 type="submit"
-                disabled={verifyingOtp || otpCode.length !== 6}
-                className="glass-button-primary w-full py-3 text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+                disabled={verifyingOtp}
+                className="w-full glass-button-primary py-3 text-xs uppercase font-bold tracking-wider"
               >
-                {verifyingOtp ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Verifying OTP...</span>
-                  </>
-                ) : (
-                  <span>Verify & Unlock Dashboard</span>
-                )}
+                {verifyingOtp ? 'Verifying Code...' : 'Verify & Launch Dashboard'}
               </button>
-
-              <div className="flex items-center justify-between text-xs text-slate-400 pt-2">
-                <span>Didn't receive code?</span>
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  className="text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Resend Code</span>
-                </button>
-              </div>
             </form>
+
+            <div className="pt-2 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={handleResend}
+                className="text-blue-neon hover:underline flex items-center gap-1 mx-auto font-semibold"
+              >
+                <RefreshCw className="w-3 h-3" /> Resend Code
+              </button>
+            </div>
           </div>
         </div>
       )}

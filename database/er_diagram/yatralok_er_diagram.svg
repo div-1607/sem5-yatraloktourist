@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 950" width="100%" height="100%" style="background:#0b1120; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <linearGradient id="headerGradBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="headerGradRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+    <linearGradient id="headerGradEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="headerGradPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+  </defs>
+
+  <text x="700" y="45" text-anchor="middle" fill="#f8fafc" font-size="24" font-weight="bold">YATRALOK DATABASE - ENTITY RELATIONSHIP DIAGRAM (yatralok_db)</text>
+  <text x="700" y="70" text-anchor="middle" fill="#94a3b8" font-size="13">Complete Relational Schema for Tourists, Police, Real-Time GPS, Circular Geofencing &amp; SOS Incidents</text>
+
+  <!-- TABLE: users -->
+  <g transform="translate(60, 110)" filter="url(#shadow)">
+    <rect width="250" height="200" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="250" height="38" rx="8" fill="url(#headerGradBlue)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">users (PK: id)</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#cbd5e1" font-size="11">name VARCHAR(150)</text>
+    <text x="15" y="100" fill="#fcd34d" font-size="11">email VARCHAR(191) [UQ]</text>
+    <text x="15" y="120" fill="#fcd34d" font-size="11">phone VARCHAR(20) [UQ]</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">password_hash VARCHAR(255)</text>
+    <text x="15" y="160" fill="#cbd5e1" font-size="11">role ENUM('TOURIST','POLICE','ADMIN')</text>
+    <text x="15" y="180" fill="#64748b" font-size="11">created_at, updated_at</text>
+  </g>
+
+  <!-- TABLE: tourists -->
+  <g transform="translate(390, 110)" filter="url(#shadow)">
+    <rect width="250" height="180" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="250" height="38" rx="8" fill="url(#headerGradBlue)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">tourists (PK: id)</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">user_id INT (FK -> users.id)</text>
+    <text x="15" y="100" fill="#fcd34d" font-size="11">digital_id VARCHAR(50) [UQ]</text>
+    <text x="15" y="120" fill="#cbd5e1" font-size="11">date_of_birth DATE</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">address TEXT</text>
+    <text x="15" y="160" fill="#64748b" font-size="11">created_at, updated_at</text>
+  </g>
+
+  <!-- TABLE: police_officers -->
+  <g transform="translate(60, 390)" filter="url(#shadow)">
+    <rect width="250" height="160" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="250" height="38" rx="8" fill="url(#headerGradPurple)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">police_officers (PK: id)</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">user_id INT (FK -> users.id)</text>
+    <text x="15" y="100" fill="#fcd34d" font-size="11">badge_number VARCHAR(50) [UQ]</text>
+    <text x="15" y="120" fill="#cbd5e1" font-size="11">station_name VARCHAR(150)</text>
+    <text x="15" y="140" fill="#64748b" font-size="11">created_at, updated_at</text>
+  </g>
+
+  <!-- TABLE: emergency_contacts -->
+  <g transform="translate(390, 370)" filter="url(#shadow)">
+    <rect width="250" height="160" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="250" height="38" rx="8" fill="url(#headerGradBlue)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">emergency_contacts</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">tourist_id INT (FK -> tourists.id)</text>
+    <text x="15" y="100" fill="#cbd5e1" font-size="11">name VARCHAR(150)</text>
+    <text x="15" y="120" fill="#cbd5e1" font-size="11">phone VARCHAR(20)</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">relation VARCHAR(50)</text>
+  </g>
+
+  <!-- TABLE: trips -->
+  <g transform="translate(730, 110)" filter="url(#shadow)">
+    <rect width="260" height="190" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="260" height="38" rx="8" fill="url(#headerGradEmerald)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">trips (PK: id)</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">tourist_id INT (FK -> tourists.id)</text>
+    <text x="15" y="100" fill="#cbd5e1" font-size="11">destination VARCHAR(200)</text>
+    <text x="15" y="120" fill="#cbd5e1" font-size="11">start_time DATETIME</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">end_time DATETIME</text>
+    <text x="15" y="160" fill="#cbd5e1" font-size="11">status ENUM('ACTIVE','COMPLETED')</text>
+  </g>
+
+  <!-- TABLE: location_points -->
+  <g transform="translate(1070, 110)" filter="url(#shadow)">
+    <rect width="260" height="180" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="260" height="38" rx="8" fill="url(#headerGradEmerald)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">location_points (GPS Trail)</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">trip_id INT (FK -> trips.id)</text>
+    <text x="15" y="100" fill="#a7f3d0" font-size="11">latitude DECIMAL(10, 7)</text>
+    <text x="15" y="120" fill="#a7f3d0" font-size="11">longitude DECIMAL(10, 7)</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">accuracy DECIMAL(6, 2)</text>
+    <text x="15" y="160" fill="#cbd5e1" font-size="11">timestamp DATETIME</text>
+  </g>
+
+  <!-- TABLE: geo_zones -->
+  <g transform="translate(1070, 370)" filter="url(#shadow)">
+    <rect width="260" height="200" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="260" height="38" rx="8" fill="url(#headerGradRed)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">geo_zones (Geofences)</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#cbd5e1" font-size="11">name VARCHAR(150)</text>
+    <text x="15" y="100" fill="#fca5a5" font-size="11">latitude, longitude DECIMAL</text>
+    <text x="15" y="120" fill="#cbd5e1" font-size="11">radius DECIMAL (meters)</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">zone_type ENUM('DANGER','RESTRICTED')</text>
+    <text x="15" y="160" fill="#cbd5e1" font-size="11">status ENUM('ACTIVE','INACTIVE')</text>
+    <text x="15" y="180" fill="#64748b" font-size="11">description TEXT</text>
+  </g>
+
+  <!-- TABLE: incidents -->
+  <g transform="translate(730, 390)" filter="url(#shadow)">
+    <rect width="280" height="270" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="280" height="38" rx="8" fill="url(#headerGradRed)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">incidents (SOS &amp; Alerts)</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">tourist_id INT (FK -> tourists.id)</text>
+    <text x="15" y="100" fill="#f43f5e" font-size="11">trip_id INT (FK -> trips.id)</text>
+    <text x="15" y="120" fill="#f43f5e" font-size="11">assigned_officer_id (FK -> police.id)</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">incident_type: SOS/GEOFENCE/MED</text>
+    <text x="15" y="160" fill="#cbd5e1" font-size="11">priority: LOW/MED/HIGH/CRITICAL</text>
+    <text x="15" y="180" fill="#fcd34d" font-size="11">status: NEW/ACK/ASSIGNED/RESOLVED</text>
+    <text x="15" y="200" fill="#cbd5e1" font-size="11">latitude, longitude DECIMAL</text>
+    <text x="15" y="220" fill="#64748b" font-size="11">created_at, acknowledged_at</text>
+    <text x="15" y="240" fill="#64748b" font-size="11">resolved_at, closed_at</text>
+  </g>
+
+  <!-- TABLE: incident_status_history -->
+  <g transform="translate(730, 720)" filter="url(#shadow)">
+    <rect width="280" height="160" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="280" height="38" rx="8" fill="url(#headerGradRed)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">incident_status_history</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">incident_id INT (FK -> incidents.id)</text>
+    <text x="15" y="100" fill="#f43f5e" font-size="11">changed_by INT (FK -> users.id)</text>
+    <text x="15" y="120" fill="#cbd5e1" font-size="11">old_status, new_status</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">remarks TEXT, changed_at</text>
+  </g>
+
+  <!-- TABLE: risk_predictions (AI) -->
+  <g transform="translate(390, 600)" filter="url(#shadow)">
+    <rect width="250" height="160" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="250" height="38" rx="8" fill="url(#headerGradPurple)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">risk_predictions (AI ML)</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">tourist_id INT (FK -> tourists.id)</text>
+    <text x="15" y="100" fill="#cbd5e1" font-size="11">risk_score DECIMAL(5,2)</text>
+    <text x="15" y="120" fill="#fcd34d" font-size="11">risk_level: LOW/MEDIUM/HIGH</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">reason TEXT, model_version</text>
+  </g>
+
+  <!-- TABLE: audit_logs -->
+  <g transform="translate(60, 630)" filter="url(#shadow)">
+    <rect width="250" height="160" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <rect width="250" height="38" rx="8" fill="url(#headerGradBlue)"/>
+    <text x="15" y="24" fill="#ffffff" font-size="14" font-weight="bold">audit_logs</text>
+    <text x="15" y="60" fill="#93c5fd" font-size="11">id INT (PK)</text>
+    <text x="15" y="80" fill="#f43f5e" font-size="11">user_id INT (FK -> users.id)</text>
+    <text x="15" y="100" fill="#cbd5e1" font-size="11">action VARCHAR(100)</text>
+    <text x="15" y="120" fill="#cbd5e1" font-size="11">entity_type, entity_id</text>
+    <text x="15" y="140" fill="#cbd5e1" font-size="11">old_value, new_value JSON</text>
+  </g>
+
+  <!-- Connection Lines -->
+  <!-- users -> tourists -->
+  <path d="M 310 180 L 390 180" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4,4"/>
+  <!-- users -> police -->
+  <path d="M 185 310 L 185 390" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="4,4"/>
+  <!-- tourists -> trips -->
+  <path d="M 640 180 L 730 180" fill="none" stroke="#34d399" stroke-width="2"/>
+  <!-- trips -> locations -->
+  <path d="M 990 180 L 1070 180" fill="none" stroke="#34d399" stroke-width="2"/>
+  <!-- tourists -> incidents -->
+  <path d="M 640 230 L 685 230 L 685 460 L 730 460" fill="none" stroke="#f87171" stroke-width="2"/>
+  <!-- police -> incidents -->
+  <path d="M 310 460 L 730 460" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="5,5"/>
+  <!-- incidents -> history -->
+  <path d="M 870 660 L 870 720" fill="none" stroke="#f87171" stroke-width="2"/>
+</svg>

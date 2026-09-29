@@ -2414,6 +2414,69 @@ const sampleDestinations = [
     emergencyHelpline: '112 / Tourist Police 0477-2251322',
     tags: ['Backwaters', 'Houseboat', 'Kerala', 'Nature', 'Romantic'],
   },
+  {
+    title: 'Kedarnath Temple',
+    country: 'India',
+    state: 'Uttarakhand',
+    city: 'Kedarnath',
+    category: 'Temples',
+    description: 'One of the twelve Jyotirlingas of Lord Shiva, Kedarnath sits at 3,583 metres in the Garhwal Himalayas. Pilgrims trek through misty valleys to the stone temple believed to have been revived by Adi Shankaracharya, with the Kedarnath peak rising behind the sanctum.',
+    shortDescription: 'Sacred Himalayan Jyotirlinga shrine amid snow peaks and Char Dham pilgrimage.',
+    images: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=1200', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200'],
+    location: { lat: 30.7352, lng: 79.0669, address: 'Kedarnath Temple, Rudraprayag, Uttarakhand 246445' },
+    crowdStatus: CROWD_LEVELS.MODERATE,
+    crowdPercentage: 62,
+    rating: 4.9,
+    numReviews: 48,
+    isPopular: true,
+    entryFee: 'Free',
+    timings: '04:00 AM - 09:00 PM (seasonal)',
+    bestTimeToVisit: 'May to June, September to October',
+    emergencyHelpline: '112 / SDRF Kedarnath 01364-233727',
+    tags: ['Kedarnath', 'Temple', 'Char Dham', 'Himalayas', 'Pilgrimage'],
+  },
+  {
+    title: 'Varanasi Ghats & Ganges',
+    country: 'India',
+    state: 'Uttar Pradesh',
+    city: 'Varanasi',
+    category: 'Tourist Places',
+    description: 'The spiritual heart of India, where stone ghats step down into the Ganges. Dawn aarti, evening Ganga Aarti at Dashashwamedh, silk weaving, and centuries of living heritage make Varanasi one of the world’s oldest continuously inhabited cities.',
+    shortDescription: 'Sacred Ganges ghats, aarti ceremonies, and living heritage of Kashi.',
+    images: ['https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=1200', 'https://images.unsplash.com/photo-1571536802807-30451e3955d8?w=1200'],
+    location: { lat: 25.3109, lng: 83.0104, address: 'Dashashwamedh Ghat, Varanasi, Uttar Pradesh 221001' },
+    crowdStatus: CROWD_LEVELS.HIGH,
+    crowdPercentage: 80,
+    rating: 4.8,
+    numReviews: 51,
+    isPopular: true,
+    entryFee: 'Free (boat rides extra)',
+    timings: 'Open 24 Hours',
+    bestTimeToVisit: 'October to March (sunrise aarti)',
+    emergencyHelpline: '112 / Tourist Police Varanasi 0542-2503536',
+    tags: ['Varanasi', 'Ghats', 'Ganges', 'Aarti', 'Spiritual'],
+  },
+  {
+    title: 'Radhanagar Beach',
+    country: 'India',
+    state: 'Andaman and Nicobar Islands',
+    city: 'Havelock Island',
+    category: 'Beaches',
+    description: 'Often ranked among Asia’s finest beaches, Radhanagar (Beach No. 7) on Havelock Island is a wide crescent of powder-white sand and turquoise water, famous for sunsets, calm swimming, and forest-backed shoreline.',
+    shortDescription: 'Award-winning white-sand beach on Havelock Island in the Andamans.',
+    images: ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200', 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=1200'],
+    location: { lat: 11.9847, lng: 92.9506, address: 'Radhanagar Beach, Swaraj Dweep (Havelock), Andaman and Nicobar Islands 744211' },
+    crowdStatus: CROWD_LEVELS.LOW,
+    crowdPercentage: 28,
+    rating: 4.9,
+    numReviews: 36,
+    isPopular: true,
+    entryFee: 'Free (park entry may apply)',
+    timings: '06:00 AM - 06:00 PM',
+    bestTimeToVisit: 'November to April',
+    emergencyHelpline: '112 / Havelock Police 03192-282206',
+    tags: ['Radhanagar Beach', 'Andaman', 'Havelock', 'Sunset', 'Beach'],
+  },
 ];
 
 const seedData = async () => {
@@ -2472,10 +2535,48 @@ const seedData = async () => {
     });
     console.log('[Seeder] City Breakdown:', citiesBreakdown);
 
+    // 4. Seed Demo Tourist Users with initial bookmarks
+    console.log('[Seeder] Seeding demo verified tourist accounts...');
+    const sampleFavs = createdDestinations.slice(0, 3).map((d) => d._id);
+    await User.create([
+      {
+        name: 'Rahul Verma',
+        email: 'rahul.verma@example.com',
+        password: 'Tourist@123',
+        role: 'tourist',
+        isVerified: true,
+        age: 28,
+        gender: 'Male',
+        mobile: '+91 98765 43210',
+        city: 'Delhi NCR',
+        address: 'Connaught Place, Central Delhi',
+        digitalId: 'YL-IND-2026-RV01',
+        favorites: sampleFavs,
+        recentSearches: ['Taj Mahal', 'Kedarnath', 'Varanasi Ghats'],
+      },
+      {
+        name: 'Priya Sharma',
+        email: 'tourist@yatralok.com',
+        password: 'Tourist@123',
+        role: 'tourist',
+        isVerified: true,
+        age: 26,
+        gender: 'Female',
+        mobile: '+91 98111 22334',
+        city: 'Jaipur',
+        address: 'MI Road, Jaipur, Rajasthan',
+        digitalId: 'YL-IND-2026-PS02',
+        favorites: sampleFavs,
+        recentSearches: ['Hawa Mahal', 'Amber Fort', 'Jaipur'],
+      },
+    ]);
+    console.log('[Seeder] Seeded 2 verified demo tourist accounts.');
+
     console.log('\n==================================================');
     console.log('✅ [YATRA LOK SEEDING COMPLETE]');
-    console.log('Admin Account:   admin@yatralok.com   | Password: Admin@123');
-    console.log('Tourist Accounts: None seeded (real tourists register live)');
+    console.log('Admin Account:   admin@yatralok.com     | Password: Admin@123');
+    console.log('Tourist Account: rahul.verma@example.com| Password: Tourist@123');
+    console.log('Tourist Account: tourist@yatralok.com   | Password: Tourist@123');
     console.log(`Total Destinations Seeded: ${createdDestinations.length}`);
     console.log('==================================================\n');
   } catch (error) {

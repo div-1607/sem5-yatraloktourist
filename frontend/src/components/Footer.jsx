@@ -4,59 +4,64 @@ import { Compass, Shield, Heart, Phone, Mail, MapPin } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="mt-24 border-t border-white/10 bg-navy-950/90 backdrop-blur-xl text-slate-400 text-sm">
+    <footer className="mt-24 border-t border-blue-electric/20 bg-black-midnight/90 backdrop-blur-3xl text-slate-400 text-sm shadow-glass-panel">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand Col */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-glow-amber">
-                <div className="w-full h-full bg-navy-950 rounded-[10px] flex items-center justify-center">
-                  <Compass className="w-5 h-5 text-amber-400" />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-royal to-blue-electric p-0.5 shadow-glow-electric">
+                <div className="w-full h-full bg-black-deep rounded-[14px] flex items-center justify-center">
+                  <Compass className="w-5 h-5 text-blue-neon" />
                 </div>
               </div>
-              <span className="text-xl font-extrabold tracking-wider text-white">
-                YATRA LOK
+              <span className="text-xl font-black tracking-wider text-white">
+                YATRA<span className="text-blue-electric">LOK</span>
               </span>
             </Link>
             <p className="text-xs text-slate-400 leading-relaxed">
               India's premier smart tourism platform combining real-time crowd safety indicators, GPS emergency SOS dispatch, and curated cultural discoveries.
             </p>
-            <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
-              <Shield className="w-4 h-4" />
-              <span>Verified Safe Tourism Partner</span>
+            <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-950/40 px-3 py-1.5 rounded-full border border-emerald-500/40 w-fit shadow-glow-safe">
+              <Shield className="w-4 h-4 text-emerald-400" />
+              <span>Verified Safe Tourism System</span>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white font-bold text-sm mb-4 tracking-wide uppercase">
-              Quick Navigation
+            <h4 className="text-white font-bold text-xs uppercase tracking-widest mb-4">
+              Navigation Hub
             </h4>
             <ul className="space-y-2.5 text-xs">
               <li>
-                <Link to="/" className="hover:text-amber-400 transition-colors">
+                <Link to="/" className="hover:text-blue-neon font-medium transition-colors">
                   Home
                 </Link>
               </li>
               <li>
-                <Link to="/destinations" className="hover:text-amber-400 transition-colors">
+                <Link to="/destinations" className="hover:text-blue-neon font-medium transition-colors">
                   Explore Destinations
                 </Link>
               </li>
               <li>
-                <Link to="/crowd-safety" className="hover:text-amber-400 transition-colors">
-                  Real-time Crowd Indicator
+                <Link to="/geofencing" className="hover:text-blue-neon font-medium transition-colors">
+                  Live Geofence Radar
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard" className="hover:text-amber-400 transition-colors">
-                  Tourist Dashboard
+                <Link to="/recommendations" className="hover:text-blue-neon font-medium transition-colors">
+                  AI Recommendation Engine
                 </Link>
               </li>
               <li>
-                <Link to="/login" className="hover:text-amber-400 transition-colors">
-                  Sign In / Register
+                <Link to="/crowd-safety" className="hover:text-blue-neon font-medium transition-colors">
+                  Crowd & Safety Forecast
+                </Link>
+              </li>
+              <li>
+                <Link to="/analytics" className="hover:text-blue-neon font-medium transition-colors">
+                  Analytics & Trends
                 </Link>
               </li>
             </ul>
@@ -64,71 +69,74 @@ const Footer = () => {
 
           {/* Categories */}
           <div>
-            <h4 className="text-white font-bold text-sm mb-4 tracking-wide uppercase">
-              Key Categories
+            <h4 className="text-white font-bold text-xs uppercase tracking-widest mb-4">
+              Curated Collections
             </h4>
             <ul className="space-y-2.5 text-xs">
               <li>
-                <Link to="/destinations?category=Temples" className="hover:text-amber-400 transition-colors">
-                  Ancient Temples & Shrines
+                <Link to="/destinations?category=Temples" className="hover:text-blue-neon font-medium transition-colors">
+                  Sacred Temples & Shrines
                 </Link>
               </li>
               <li>
-                <Link to="/destinations?category=Historical Places" className="hover:text-amber-400 transition-colors">
+                <Link to="/destinations?category=Historical Places" className="hover:text-blue-neon font-medium transition-colors">
                   Historical Forts & Palaces
                 </Link>
               </li>
               <li>
-                <Link to="/destinations?category=Beaches" className="hover:text-amber-400 transition-colors">
-                  Beaches & Coastal Shacks
+                <Link to="/destinations?category=Beaches" className="hover:text-blue-neon font-medium transition-colors">
+                  Pristine Coastal Bays
                 </Link>
               </li>
               <li>
-                <Link to="/destinations?category=Old Towns" className="hover:text-amber-400 transition-colors">
-                  Heritage Old Towns
+                <Link to="/destinations?category=Old Towns" className="hover:text-blue-neon font-medium transition-colors">
+                  Heritage Living Towns
                 </Link>
               </li>
               <li>
-                <Link to="/destinations?category=Cafes & Restaurants" className="hover:text-amber-400 transition-colors">
-                  Artisanal Cafes & Dining
+                <Link to="/destinations?category=Cafes & Restaurants" className="hover:text-blue-neon font-medium transition-colors">
+                  Artisanal Heritage Cafes
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Emergency Hotlines */}
-          <div>
-            <h4 className="text-white font-bold text-sm mb-4 tracking-wide uppercase flex items-center gap-2">
-              <Phone className="w-4 h-4 text-rose-400" />
-              <span>24x7 Emergency Helplines</span>
+          {/* Emergency Hotlines (Strict Red/Yellow Accents) */}
+          <div className="space-y-4">
+            <h4 className="text-white font-bold text-xs uppercase tracking-widest mb-4">
+              24x7 Emergency Hotlines
             </h4>
             <div className="space-y-2 text-xs">
-              <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex justify-between items-center">
+              <a
+                href="tel:112"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 font-bold hover:bg-red-900/50 transition-all shadow-glow-danger"
+              >
                 <span>National Emergency</span>
-                <span className="text-rose-400 font-bold">112</span>
-              </div>
-              <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex justify-between items-center">
-                <span>Tourist Assistance Helpline</span>
-                <span className="text-amber-400 font-bold">1363</span>
-              </div>
-              <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex justify-between items-center">
-                <span>Police Control</span>
-                <span className="text-white font-bold">100</span>
-              </div>
-              <div className="p-2 rounded-lg bg-white/5 border border-white/10 flex justify-between items-center">
-                <span>Women Safety</span>
-                <span className="text-pink-400 font-bold">1091</span>
-              </div>
+                <span className="font-mono">112</span>
+              </a>
+              <a
+                href="tel:1363"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-navy-950/70 border border-blue-electric/30 text-blue-neon font-bold hover:bg-blue-royal/30 transition-all shadow-glow-electric"
+              >
+                <span>Tourist Helpline</span>
+                <span className="font-mono">1363</span>
+              </a>
+              <a
+                href="tel:108"
+                className="flex items-center justify-between p-2.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 font-bold hover:bg-red-900/50 transition-all"
+              >
+                <span>Medical Ambulance</span>
+                <span className="font-mono">108</span>
+              </a>
             </div>
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-          <p>&copy; {new Date().getFullYear()} Yatra Lok. Designed for safe, seamless exploration.</p>
+        {/* Bottom Bar */}
+        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+          <p>© {new Date().getFullYear()} YatraLok Smart Tourism Platform. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <span className="hover:text-white cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-white cursor-pointer">Terms of Service</span>
-            <span className="hover:text-white cursor-pointer">Safety Guidelines</span>
+            <span className="text-slate-400 font-mono">Precision Geofencing & AI Safety Platform</span>
           </div>
         </div>
       </div>

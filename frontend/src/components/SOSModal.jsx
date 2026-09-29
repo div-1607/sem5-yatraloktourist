@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLiveLocation } from '../context/LiveLocationContext';
 import toast from 'react-hot-toast';
 
 const SOSModal = ({ isOpen, onClose }) => {
   const { user } = useAuth();
+  const { coordinates: liveCoords, userLocation: liveUserLocation, isTracking, startTracking } = useLiveLocation();
 
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -26,63 +28,108 @@ const SOSModal = ({ isOpen, onClose }) => {
 
   // Request browser GPS location as soon as modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    setDispatchedTicket(null);
+    setLocationError(null);
+    startTracking();
+    if (!(liveCoords && liveCoords.latitude && liveCoords.longitude)) {
       fetchLocation();
-      setDispatchedTicket(null);
-      setLocationError(null);
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, startTracking]);
+
+  useEffect(() => {
+    if (!isOpen || !liveCoords?.latitude || !liveCoords?.longitude) return;
+    setLocation({
+      lat: liveCoords.latitude,
+      lng: liveCoords.longitude,
+      accuracy: liveCoords.accuracy || 10,
+      speed: liveCoords.speed,
+      altitude: liveCoords.altitude,
+      address: `Live GPS Fix: ${liveCoords.latitude.toFixed(5)}, ${liveCoords.longitude.toFixed(5)} (±${liveCoords.accuracy || 10}m accuracy)`,
+    });
+    setLocationLoading(false);
+  }, [isOpen, liveCoords]);
 
   const fetchLocation = () => {
     setLocationLoading(true);
     setLocationError(null);
 
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = Number(pos.coords.latitude);
-          const lng = Number(pos.coords.longitude);
-          const accuracy = Math.round(pos.coords.accuracy || 10);
-          setLocation({
-            lat,
-            lng,
-            accuracy,
-            address: `GPS Fix: ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy}m accuracy)`,
-          });
-          setLocationLoading(false);
-        },
-        (err) => {
-          console.warn('GPS location request notice:', err.message);
-          // Fallback to high-reliability central reference coordinates
-          setLocation({
-            lat: 28.6139,
-            lng: 77.2090,
-            accuracy: 50,
-            address: 'Central Reference GPS Coordinates (New Delhi)',
-          });
-          setLocationLoading(false);
-        },
-        { timeout: 8000, enableHighAccuracy: true }
-      );
-    } else {
-      setLocation({
-        lat: 28.6139,
-        lng: 77.2090,
-        accuracy: 50,
-        address: 'Standard GPS Reference Coordinates',
-      });
+    if (!('geolocation' in navigator)) {
+      setLocationError('Geolocation is not supported by your browser.');
       setLocationLoading(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude);
+        const lng = Number(pos.coords.longitude);
+        const accuracy = Math.round(pos.coords.accuracy || 10);
+        setLocation({
+          lat,
+          lng,
+          accuracy,
+          speed: pos.coords.speed !== null ? +(pos.coords.speed * 3.6).toFixed(1) : null,
+          altitude: pos.coords.altitude !== null ? Math.round(pos.coords.altitude) : null,
+          address: `GPS Fix: ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy}m accuracy)`,
+        });
+        setLocationLoading(false);
+      },
+      (err) => {
+        let msg = 'Unable to get location.';
+        if (err.code === 1) {
+          msg = 'Location permission denied. Please allow location permissions in your browser to dispatch SOS with live GPS.';
+        } else if (err.code === 2) {
+          msg = 'Location unavailable. Please check your device GPS / location services.';
+        } else if (err.code === 3) {
+          msg = 'Location request timed out. Please try again.';
+        }
+        setLocationError(msg);
+        setLocationLoading(false);
+      },
+      { timeout: 12000, enableHighAccuracy: true }
+    );
   };
 
+  const effectiveLocation =
+    location ||
+    (liveCoords?.latitude && liveCoords?.longitude
+      ? {
+          lat: liveCoords.latitude,
+          lng: liveCoords.longitude,
+          accuracy: liveCoords.accuracy || 10,
+          speed: liveCoords.speed,
+          altitude: liveCoords.altitude,
+          address: `Live GPS Fix: ${liveCoords.latitude.toFixed(5)}, ${liveCoords.longitude.toFixed(5)} (±${liveCoords.accuracy || 10}m precision)`,
+        }
+      : null) ||
+    (() => {
+      try {
+        const cached = JSON.parse(localStorage.getItem('yatralok_last_coords'));
+        if (cached?.latitude && cached?.longitude) {
+          return {
+            lat: cached.latitude,
+            lng: cached.longitude,
+            accuracy: cached.accuracy || 12,
+            speed: cached.speed,
+            altitude: cached.altitude,
+            address: `Live GPS Fix: ${cached.latitude.toFixed(5)}, ${cached.longitude.toFixed(5)} (±${cached.accuracy || 12}m precision)`,
+          };
+        }
+      } catch {}
+      return null;
+    })();
+
   const handleTransmitLocation = async () => {
+    if (!effectiveLocation) {
+      toast.error('Please allow GPS location permission to broadcast your emergency distress signal.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const activeLocation = location || {
-        lat: 28.6139,
-        lng: 77.2090,
-        address: 'Current Location Broadcast',
-      };
+      const activeLocation = effectiveLocation;
 
       const payload = {
         userName: user?.name || 'Tourist Traveler',
@@ -245,27 +292,51 @@ const SOSModal = ({ isOpen, onClose }) => {
                   </button>
                 </div>
 
-                <div className="p-3 rounded-xl bg-navy-900/80 border border-white/10 flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-xl bg-navy-900/90 border border-blue-electric/30 flex items-start gap-3 shadow-glass">
+                  <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400 shrink-0 mt-0.5 border border-rose-500/30">
+                    <MapPin className="w-5 h-5 text-rose-500 animate-pulse" />
+                  </div>
                   <div className="min-w-0 flex-1">
-                    {locationLoading ? (
-                      <div className="flex items-center gap-2 text-xs text-amber-400 py-1">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                    {effectiveLocation ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            Live GPS Locked
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400 px-2 py-0.5 rounded bg-black/40 border border-white/10">
+                            ±{effectiveLocation.accuracy || 10}m precision
+                          </span>
+                        </div>
+                        <div className="text-white font-mono font-black text-base tracking-wide">
+                          {effectiveLocation.lat?.toFixed(5)}° N, {effectiveLocation.lng?.toFixed(5)}° E
+                        </div>
+                        <p className="text-[11px] text-slate-300 truncate">
+                          {effectiveLocation.address || `Live Browser Coordinates Fix`}
+                        </p>
+                        {effectiveLocation.speed !== null && effectiveLocation.speed !== undefined && (
+                          <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1 border-t border-white/5 font-mono">
+                            <span>Speed: {effectiveLocation.speed} km/h</span>
+                            {effectiveLocation.altitude && <span>Alt: {effectiveLocation.altitude}m</span>}
+                          </div>
+                        )}
+                      </div>
+                    ) : locationLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-amber-400 py-1.5">
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
                         <span>Acquiring live satellite GPS coordinates...</span>
                       </div>
-                    ) : location ? (
-                      <div>
-                        <div className="text-white font-mono font-bold text-sm">
-                          {location.lat?.toFixed(5)}, {location.lng?.toFixed(5)}
-                        </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                          {location.address}
-                        </p>
-                      </div>
                     ) : (
-                      <p className="text-xs text-slate-400">
-                        Detecting location...
-                      </p>
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-xs text-amber-300">Location permission required</span>
+                        <button
+                          type="button"
+                          onClick={fetchLocation}
+                          className="px-2.5 py-1 rounded bg-blue-electric text-white text-[11px] font-bold"
+                        >
+                          Enable GPS
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

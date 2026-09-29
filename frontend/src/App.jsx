@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
+import { LiveLocationProvider } from './context/LiveLocationContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import FloatingSOS from './components/FloatingSOS';
@@ -21,35 +22,51 @@ import AdminDestinations from './pages/AdminDestinations';
 import AdminUsers from './pages/AdminUsers';
 import AdminSOS from './pages/AdminSOS';
 
+// New Feature Module Pages
+import GeofencingLivePage from './pages/GeofencingLivePage';
+import RecommendationsHubPage from './pages/RecommendationsHubPage';
+import CrowdSafetyForecastPage from './pages/CrowdSafetyForecastPage';
+import AnalyticsIntelligencePage from './pages/AnalyticsIntelligencePage';
+import AdminGeofenceManager from './pages/AdminGeofenceManager';
+
+const AdminLayout = ({ children }) => {
+  return (
+    <div className="bg-black-deep text-slate-100 min-h-screen">
+      {children}
+    </div>
+  );
+};
+
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="flex flex-col min-h-screen bg-navy-950 text-slate-100 selection:bg-amber-500 selection:text-navy-950">
-          {/* Toast Notifications */}
+      <LiveLocationProvider>
+        <Router>
+        <div className="flex flex-col min-h-screen bg-black-deep text-slate-100 selection:bg-blue-electric selection:text-white">
+          {/* Luxury Dark Glass Toast Notifications */}
           <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
               style: {
-                background: '#06122B',
-                color: '#FFFFFF',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                backdropFilter: 'blur(16px)',
-                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-                fontSize: '12px',
+                background: 'rgba(10, 31, 68, 0.88)',
+                color: '#F8FAFC',
+                border: '1px solid rgba(59, 130, 246, 0.35)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 12px 35px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 130, 246, 0.2)',
+                fontSize: '13px',
                 fontWeight: '600',
               },
               success: {
                 iconTheme: {
                   primary: '#10B981',
-                  secondary: '#06122B',
+                  secondary: '#050505',
                 },
               },
               error: {
                 iconTheme: {
                   primary: '#EF4444',
-                  secondary: '#06122B',
+                  secondary: '#050505',
                 },
               },
             }}
@@ -61,14 +78,19 @@ function App() {
           {/* Main Route Content */}
           <main className="flex-grow">
             <Routes>
-              {/* Public Pages */}
+              {/* Public & Feature Module Pages */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/destinations" element={<DestinationsListPage />} />
               <Route path="/destinations/:id" element={<DestinationDetailsPage />} />
-              <Route path="/crowd-safety" element={<CrowdIndicatorPage />} />
+              <Route path="/crowd-safety" element={<CrowdSafetyForecastPage />} />
+              <Route path="/crowd-indicator" element={<CrowdIndicatorPage />} />
+              <Route path="/geofencing" element={<GeofencingLivePage />} />
+              <Route path="/tracking" element={<GeofencingLivePage />} />
+              <Route path="/recommendations" element={<RecommendationsHubPage />} />
+              <Route path="/analytics" element={<AnalyticsIntelligencePage />} />
 
               {/* Tourist Protected Pages */}
               <Route
@@ -82,34 +104,19 @@ function App() {
 
               {/* Admin Protected Pages */}
               <Route
-                path="/admin"
+                path="/admin/*"
                 element={
                   <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/destinations"
-                element={
-                  <AdminRoute>
-                    <AdminDestinations />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={
-                  <AdminRoute>
-                    <AdminUsers />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/sos"
-                element={
-                  <AdminRoute>
-                    <AdminSOS />
+                    <AdminLayout>
+                      <Routes>
+                        <Route path="/" element={<AdminDashboard />} />
+                        <Route path="/destinations" element={<AdminDestinations />} />
+                        <Route path="/geofences" element={<AdminGeofenceManager />} />
+                        <Route path="/users" element={<AdminUsers />} />
+                        <Route path="/sos" element={<AdminSOS />} />
+                        <Route path="/analytics" element={<AnalyticsIntelligencePage />} />
+                      </Routes>
+                    </AdminLayout>
                   </AdminRoute>
                 }
               />
@@ -123,6 +130,7 @@ function App() {
           <Footer />
         </div>
       </Router>
+      </LiveLocationProvider>
     </AuthProvider>
   );
 }

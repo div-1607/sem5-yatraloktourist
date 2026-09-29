@@ -76,17 +76,17 @@ const ForgotPasswordPage = () => {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 p-0.5 shadow-glow-amber">
-              <div className="w-full h-full bg-navy-950 rounded-[10px] flex items-center justify-center">
-                <Compass className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-md">
+              <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
+                <Compass className="w-5 h-5 text-blue-600" />
               </div>
             </div>
-            <span className="text-2xl font-extrabold tracking-wider text-white">
+            <span className="text-2xl font-extrabold tracking-wider text-slate-900">
               YATRA LOK
             </span>
           </Link>
-          <h2 className="text-xl font-bold text-white">Reset Account Password</h2>
-          <p className="text-xs text-slate-400">
+          <h2 className="text-xl font-bold text-slate-900">Reset Account Password</h2>
+          <p className="text-xs text-slate-600">
             {step === 1
               ? 'Enter your registered email to receive a recovery OTP code'
               : 'Enter the 6-digit OTP code and choose your new password'}
@@ -97,7 +97,7 @@ const ForgotPasswordPage = () => {
           {step === 1 ? (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Registered Email Address
                 </label>
                 <div className="relative">
@@ -130,14 +130,14 @@ const ForgotPasswordPage = () => {
             </form>
           ) : (
             <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center text-xs">
-                <span className="text-slate-300 block text-[11px]">OTP sent to:</span>
-                <span className="text-amber-400 font-semibold">{email}</span>
+              <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200 text-center text-xs">
+                <span className="text-slate-600 block text-[11px]">OTP sent to:</span>
+                <span className="text-blue-700 font-semibold">{email}</span>
                 <p className="text-slate-500 text-[10px] mt-1">Check your inbox and spam folder</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   6-Digit OTP Code
                 </label>
                 <input
@@ -147,12 +147,12 @@ const ForgotPasswordPage = () => {
                   placeholder="123456"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  className="glass-input w-full text-center text-lg font-mono font-bold tracking-widest py-2.5"
+                  className="glass-input w-full text-center text-lg font-mono font-bold tracking-widest py-2.5 text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   New Password
                 </label>
                 <input
@@ -166,7 +166,7 @@ const ForgotPasswordPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Confirm New Password
                 </label>
                 <input
@@ -197,17 +197,17 @@ const ForgotPasswordPage = () => {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="w-full text-center text-xs text-slate-400 hover:text-slate-200 mt-2"
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-700 mt-2"
               >
                 Change email address
               </button>
             </form>
           )}
 
-          <div className="text-center pt-2 border-t border-white/10 text-xs">
+          <div className="text-center pt-2 border-t border-slate-100 text-xs">
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 text-amber-400 hover:text-amber-300 font-semibold"
+              className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-semibold"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Login</span>

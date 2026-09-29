@@ -8,6 +8,9 @@ const { CATEGORIES } = require('../config/constants');
  * @route   GET /api/destinations
  * @access  Public
  */
+const escapeRegex = (value = '') =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const getDestinations = async (req, res, next) => {
   try {
     const {
@@ -16,6 +19,7 @@ const getDestinations = async (req, res, next) => {
       city,
       category,
       crowdStatus,
+      crowd,
       minRating,
       sort,
       page = 1,
@@ -23,15 +27,19 @@ const getDestinations = async (req, res, next) => {
     } = req.query;
 
     const query = {};
+    const crowdFilter = crowdStatus || crowd;
 
-    // Search query
+    // Search query (landing-page suggestions hit this endpoint)
     if (search) {
+      const searchRegex = new RegExp(escapeRegex(search.trim()), 'i');
       query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { city: { $regex: search, $options: 'i' } },
-        { state: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } },
+        { title: searchRegex },
+        { city: searchRegex },
+        { state: searchRegex },
+        { category: searchRegex },
+        { shortDescription: searchRegex },
+        { description: searchRegex },
+        { tags: { $in: [searchRegex] } },
       ];
     }
 
@@ -48,8 +56,8 @@ const getDestinations = async (req, res, next) => {
       query.category = category;
     }
 
-    if (crowdStatus && crowdStatus !== 'All') {
-      query.crowdStatus = crowdStatus.toLowerCase();
+    if (crowdFilter && crowdFilter !== 'All') {
+      query.crowdStatus = String(crowdFilter).toLowerCase();
     }
 
     if (minRating) {
@@ -88,6 +96,7 @@ const getDestinations = async (req, res, next) => {
       totalPages: Math.ceil(total / limitNum),
       currentPage: pageNum,
       data: destinations,
+      destinations,
     });
   } catch (error) {
     next(error);
