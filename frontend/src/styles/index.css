@@ -4,20 +4,18 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
-    background-color: #050505;
+    background-color: #F8FAFC;
     background-image: 
-      radial-gradient(at 10% 15%, rgba(10, 31, 68, 0.75) 0px, transparent 55%),
-      radial-gradient(at 85% 20%, rgba(30, 58, 138, 0.45) 0px, transparent 50%),
-      radial-gradient(at 50% 60%, rgba(10, 31, 68, 0.4) 0px, transparent 65%),
-      radial-gradient(at 80% 85%, rgba(30, 58, 138, 0.35) 0px, transparent 55%),
-      radial-gradient(at 15% 90%, rgba(10, 10, 10, 0.95) 0px, transparent 60%);
+      radial-gradient(at 15% 10%, rgba(219, 234, 254, 0.45) 0px, transparent 45%),
+      radial-gradient(at 85% 15%, rgba(224, 231, 255, 0.4) 0px, transparent 45%),
+      radial-gradient(at 50% 60%, rgba(241, 245, 249, 0.5) 0px, transparent 60%);
     background-attachment: fixed;
-    color: #F8FAFC;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    color: #0F172A;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
@@ -25,225 +23,525 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    color: #F8FAFC;
-    letter-spacing: -0.02em;
+    color: #0F172A;
+    letter-spacing: -0.025em;
   }
 
   p {
-    color: #94A3B8;
+    color: #475569;
   }
 }
 
 @layer components {
-  /* Apple-grade Luxury Dark Glassmorphism */
+  /* Modern Clean Travel Platform Card */
   .glass-card {
-    background: rgba(10, 31, 68, 0.35);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(59, 130, 246, 0.22);
-    box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 6px 16px -2px rgba(15, 23, 42, 0.04);
     border-radius: 1.25rem;
-    color: #F8FAFC;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    color: #0F172A;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .glass-card-hover {
     @apply glass-card;
   }
   .glass-card-hover:hover {
-    background: rgba(14, 41, 84, 0.5);
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.85), 0 0 30px rgba(59, 130, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    transform: translateY(-4px);
+    border-color: #CBD5E1;
+    box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+    transform: translateY(-3px);
   }
 
+  /* Frosted Glass Panel */
   .glass-panel {
-    background: rgba(10, 10, 10, 0.75);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    color: #F8FAFC;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08);
+    color: #0F172A;
   }
 
   .glass-panel-deep {
-    background: rgba(5, 5, 5, 0.85);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(59, 130, 246, 0.18);
-    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.95);
-    color: #F8FAFC;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.12);
+    color: #0F172A;
   }
 
-  /* Frosted Glass Inputs */
+  /* Clean Travel Inputs */
   .glass-input {
-    background: rgba(10, 31, 68, 0.35);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    backdrop-filter: blur(16px);
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
     border-radius: 0.875rem;
     padding: 0.75rem 1.125rem;
-    color: #F8FAFC;
-    transition: all 0.25s ease;
+    color: #0F172A;
+    transition: all 0.2s ease;
   }
   .glass-input::placeholder {
-    color: #64748B;
+    color: #94A3B8;
   }
   .glass-input:focus {
     outline: none;
-    background: rgba(14, 41, 84, 0.5);
-    border-color: #3B82F6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), 0 0 20px rgba(59, 130, 246, 0.2);
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
   }
 
-  /* Primary Glass Button (Electric & Royal Blue) */
+  /* Primary Blue Button */
   .glass-button-primary {
-    background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
     color: #FFFFFF !important;
-    font-weight: 700;
+    font-weight: 600;
     padding: 0.75rem 1.5rem;
     border-radius: 0.875rem;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     overflow: hidden;
   }
   .glass-button-primary:hover {
-    background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
-    box-shadow: 0 8px 30px rgba(59, 130, 246, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
     transform: translateY(-2px);
   }
   .glass-button-primary:active {
     transform: scale(0.98);
   }
 
-  /* Secondary Glass Button */
+  /* Secondary Neutral Button */
   .glass-button-secondary {
-    background: rgba(10, 31, 68, 0.45);
-    backdrop-filter: blur(16px);
-    color: #60A5FA !important;
-    font-weight: 700;
-    border: 1px solid rgba(59, 130, 246, 0.35);
+    background: #F1F5F9;
+    color: #1E293B !important;
+    font-weight: 600;
+    border: 1px solid #E2E8F0;
     padding: 0.75rem 1.5rem;
     border-radius: 0.875rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    transition: all 0.25s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
   }
   .glass-button-secondary:hover {
-    background: rgba(30, 58, 138, 0.4);
-    border-color: #3B82F6;
-    color: #FFFFFF !important;
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.35);
-    transform: translateY(-2px);
+    background: #E2E8F0;
+    border-color: #CBD5E1;
+    color: #0F172A !important;
+    transform: translateY(-1px);
   }
 
-  /* SOS / Emergency Glass Button (Strict Red Accent) */
+  /* SOS / Emergency Button */
   .glass-button-sos {
-    background: linear-gradient(135deg, #7F1D1D 0%, #EF4444 100%);
+    background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
     color: #FFFFFF !important;
-    font-weight: 800;
+    font-weight: 700;
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 9999px;
-    box-shadow: 0 0 35px rgba(239, 68, 68, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
     transition: all 0.25s ease;
   }
   .glass-button-sos:hover {
-    background: linear-gradient(135deg, #991B1B 0%, #DC2626 100%);
-    box-shadow: 0 0 50px rgba(239, 68, 68, 0.95);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, #B91C1C 0%, #991B1B 100%);
+    box-shadow: 0 6px 25px rgba(220, 38, 38, 0.55);
+    transform: scale(1.03);
   }
 
-  /* Status Badges with strict colors */
+  /* Status Badges */
   .badge-safe {
-    background: rgba(6, 78, 59, 0.45);
-    color: #10B981;
-    border: 1px solid rgba(16, 185, 129, 0.45);
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+    background: #ECFDF5;
+    color: #059669;
+    border: 1px solid #A7F3D0;
+    font-weight: 600;
   }
   .badge-warning {
-    background: rgba(120, 53, 15, 0.45);
-    color: #F59E0B;
-    border: 1px solid rgba(245, 158, 11, 0.45);
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+    background: #FFFBEB;
+    color: #D97706;
+    border: 1px solid #FDE68A;
+    font-weight: 600;
   }
   .badge-danger {
-    background: rgba(127, 29, 29, 0.45);
-    color: #EF4444;
-    border: 1px solid rgba(239, 68, 68, 0.45);
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+    font-weight: 600;
   }
 }
 
-/* Custom Luxury Scrollbar */
+.light-theme-page {
+  background-color: #F8FAFC !important;
+  background-image: none !important;
+  color: #0F172A !important;
+}
+
+.light-theme-page [class*="bg-black-"],
+.light-theme-page [class*="bg-navy-"],
+.light-theme-page [class~="bg-slate-900"],
+.light-theme-page [class~="bg-slate-800"] {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
+.light-theme-page [class*="from-navy-"] {
+  background-image: linear-gradient(105deg, #EFF6FF, #F8FAFC) !important;
+}
+
+.light-theme-page :is(.text-white, .text-slate-100, .text-slate-200, .text-slate-300):not(button):not(a) {
+  color: #1E293B !important;
+}
+
+.light-theme-page :is(.text-slate-400, .text-slate-500) {
+  color: #64748B !important;
+}
+
+.light-theme-page [class*="border-white/"] {
+  border-color: #E2E8F0 !important;
+}
+
+.light-theme-page [class*="bg-emerald-950"] {
+  background-color: #ECFDF5 !important;
+}
+
+.light-theme-page [class*="bg-amber-950"] {
+  background-color: #FFFBEB !important;
+}
+
+.light-theme-page [class*="bg-red-950"] {
+  background-color: #FEF2F2 !important;
+}
+
+.light-theme-page :is([class*="text-emerald-300"], [class*="text-emerald-400"]) {
+  color: #047857 !important;
+}
+
+.light-theme-page :is([class*="text-amber-300"], [class*="text-amber-400"]) {
+  color: #B45309 !important;
+}
+
+.light-theme-page :is([class*="text-red-300"], [class*="text-red-400"]) {
+  color: #B91C1C !important;
+}
+
+.light-theme-page :is(input, select, textarea).text-white {
+  color: #0F172A !important;
+}
+
+.destination-rail {
+  scrollbar-width: thin;
+  scrollbar-color: #94A3B8 #E2E8F0;
+  cursor: grab;
+  touch-action: pan-x;
+}
+
+.destination-rail:active {
+  cursor: grabbing;
+}
+
+.destination-rail-card {
+  width: min(90vw, 420px);
+}
+
+@media (min-width: 768px) {
+  .destination-rail-card {
+    width: calc((100vw - 96px) / 2.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  .destination-rail-card {
+    width: calc((100vw - 120px) / 3);
+    min-width: 380px;
+  }
+}
+
+.landing-hero {
+  isolation: isolate;
+  background-color: #061326;
+}
+
+.landing-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(2, 8, 18, 0.58) 0%, rgba(3, 12, 25, 0.32) 46%, rgba(3, 12, 25, 0.08) 100%);
+}
+
+.hero-night-sky {
+  background-image:
+    radial-gradient(circle, rgba(221, 235, 251, 0.68) 0 0.55px, transparent 1.2px),
+    radial-gradient(circle, rgba(179, 203, 228, 0.45) 0 0.6px, transparent 1.4px);
+  background-size: 131px 117px, 197px 173px;
+  background-position: 23px 17px, 74px 68px;
+  opacity: 0.16;
+}
+
+.hero-world-map {
+  inset: 8% 0 7% 34%;
+  background-image: url('/earth-atmos-2048.jpg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  filter: grayscale(1) brightness(0.42) contrast(1.25);
+  opacity: 0.095;
+  mix-blend-mode: screen;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 24%, #000 79%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 24%, #000 79%, transparent 100%);
+}
+
+.hero-city-lights {
+  background-image:
+    radial-gradient(circle, rgba(255, 202, 128, 0.74) 0 1px, transparent 2.4px),
+    radial-gradient(circle, rgba(242, 184, 108, 0.48) 0 0.8px, transparent 2px),
+    radial-gradient(ellipse, rgba(33, 86, 130, 0.2), transparent 60%);
+  background-size: 103px 79px, 147px 111px, 68% 80%;
+  background-position: 28px 32px, 81px 66px, right 47%;
+  background-repeat: repeat, repeat, no-repeat;
+  opacity: 0.14;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 41%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 41%, #000 100%);
+}
+
+.hero-flight-paths {
+  inset: 12% 0 10% 36%;
+  width: 64%;
+  height: 78%;
+  overflow: visible;
+  opacity: 0.2;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 20%, #000 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 20%, #000 80%, transparent 100%);
+}
+
+.hero-flight-line {
+  fill: none;
+  stroke: #9bc5e4;
+  stroke-width: 1.15;
+  stroke-dasharray: 3 9;
+  stroke-linecap: round;
+  opacity: 0.66;
+  animation: flight-route-drift 48s linear infinite;
+}
+
+.hero-flight-line-warm {
+  stroke: #dfb779;
+  opacity: 0.48;
+  animation-duration: 62s;
+}
+
+.hero-flight-points circle {
+  fill: #efc17d;
+  filter: drop-shadow(0 0 3px rgba(239, 193, 125, 0.5));
+}
+
+.landing-hero::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: auto 0 0;
+  height: 17%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(2, 8, 18, 0.42));
+}
+
+.landing-hero-layout {
+  grid-template-columns: minmax(0, 0.94fr) minmax(420px, 1.06fr);
+}
+
+.landing-hero-copy {
+  animation: hero-copy-arrive 850ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.landing-hero-globe-space {
+  min-height: clamp(480px, 45vw, 650px);
+}
+
+.hero-brand-title {
+  width: fit-content;
+  color: transparent;
+  background: linear-gradient(100deg, #f6fbff 0%, #a8eaff 53%, #78bfff 78%, #f2cb8e 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  filter: drop-shadow(0 5px 24px rgba(77, 179, 235, 0.18));
+}
+
+.hero-globe-canvas {
+  position: absolute;
+  z-index: 3;
+  top: 51%;
+  right: clamp(10px, 4.5vw, 74px);
+  width: clamp(420px, 46vw, 670px);
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.96;
+  filter: drop-shadow(0 18px 50px rgba(25, 112, 190, 0.24));
+  mask-image: radial-gradient(circle at 51% 49%, #000 66%, rgba(0, 0, 0, 0.85) 75%, transparent 87%);
+  -webkit-mask-image: radial-gradient(circle at 51% 49%, #000 66%, rgba(0, 0, 0, 0.85) 75%, transparent 87%);
+  animation: hero-globe-float 10s ease-in-out infinite;
+}
+
+.hero-globe-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 1023px) {
+  .landing-hero-layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    padding-top: 76px;
+  }
+
+  .landing-hero-copy {
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .landing-hero-globe-space {
+    min-height: clamp(310px, 52vw, 470px);
+  }
+
+  .hero-globe-canvas {
+    top: auto;
+    right: max(-30px, calc((100vw - 690px) / 2));
+    bottom: -1%;
+    width: min(62vw, 500px);
+    transform: none;
+    opacity: 0.76;
+  }
+
+  .hero-world-map,
+  .hero-flight-paths {
+    left: 8%;
+    right: 0;
+    width: auto;
+  }
+
+  .hero-world-map {
+    top: 7%;
+    bottom: 7%;
+  }
+
+  .hero-flight-paths {
+    top: 12%;
+    bottom: 12%;
+    height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-hero {
+    min-height: auto;
+  }
+
+  .landing-hero-layout {
+    gap: 0;
+    padding: 76px 20px 0;
+  }
+
+  .landing-hero-copy {
+    max-width: 100%;
+    gap: 20px;
+  }
+
+  .landing-hero-globe-space {
+    min-height: min(80vw, 330px);
+  }
+
+  .hero-globe-canvas {
+    right: 50%;
+    bottom: -4%;
+    width: min(83vw, 340px);
+    transform: translateX(50%);
+    opacity: 0.86;
+  }
+
+  .hero-world-map {
+    inset: auto -12% 0 12%;
+    height: 38%;
+    opacity: 0.055;
+  }
+
+  .hero-city-lights {
+    opacity: 0.08;
+  }
+
+  .hero-flight-paths {
+    inset: auto 0 1% 10%;
+    width: 90%;
+    height: 32%;
+    opacity: 0.14;
+  }
+}
+
+@keyframes hero-globe-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -9px; }
+}
+
+@keyframes flight-route-drift {
+  to { stroke-dashoffset: -120; }
+}
+
+@keyframes hero-copy-arrive {
+  from { opacity: 0; transform: translate3d(-12px, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-copy,
+  .hero-globe-canvas,
+  .hero-flight-line {
+    animation: none;
+  }
+}
+
+@media (min-width: 1280px) {
+  .destination-rail-card {
+    width: calc((100vw - 128px) / 3);
+    min-width: 400px;
+  }
+}
+
+/* Custom Minimal Scrollbar */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #050505;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E3A8A;
+  background: #CBD5E1;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3B82F6;
-  box-shadow: 0 0 10px #3B82F6;
+  background: #94A3B8;
 }
 
-/* Dark Mode Leaflet Map Customization */
+/* Leaflet Map Customization */
 .leaflet-container {
   width: 100%;
   height: 100%;
   border-radius: 1.25rem;
-  background: #0A0A0A !important;
   font-family: inherit;
   z-index: 10;
 }
 
-/* Dark navy look from free OSM tiles (no map API key) */
-.leaflet-tile {
-  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.95) saturate(0.55);
+.leaflet-popup-content-wrapper {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid #E2E8F0 !important;
 }
 
-.yatralok-map .leaflet-control-attribution {
-  background: rgba(5, 5, 5, 0.7) !important;
-  color: #94a3b8 !important;
+.leaflet-popup-tip {
+  background: #FFFFFF !important;
 }
 
 .leaflet-div-icon.live-gps-user-marker,
 .live-gps-user-marker {
   background: transparent !important;
   border: none !important;
-}
-
-.live-gps-user-marker {
   overflow: visible !important;
-}
-
-.leaflet-popup-content-wrapper {
-  background: rgba(10, 31, 68, 0.88) !important;
-  backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(59, 130, 246, 0.35) !important;
-  color: #F8FAFC !important;
-  border-radius: 1rem !important;
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8) !important;
-}
-
-.leaflet-popup-tip {
-  background: rgba(10, 31, 68, 0.88) !important;
-}
-
-/* Glow Keyframes */
-@keyframes neonPulse {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 35px rgba(59, 130, 246, 0.8);
-  }
-}
-
-.animate-neon-pulse {
-  animation: neonPulse 2.5s infinite;
 }

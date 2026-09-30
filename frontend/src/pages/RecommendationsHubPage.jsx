@@ -143,7 +143,7 @@ export default function RecommendationsHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black-deep text-slate-100 pt-20 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="light-theme-page min-h-screen pt-20 pb-20 px-4 sm:px-6 lg:px-8">
       {/* Header Banner */}
       <div className="max-w-7xl mx-auto mb-8 text-center sm:text-left">
         <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-navy-900 via-blue-royal/40 to-navy-950 border border-blue-electric/30 backdrop-blur-2xl shadow-glass-panel relative overflow-hidden">

@@ -10,10 +10,12 @@ const {
   deleteZone,
   getNearbyZones,
   toggleZoneStatus,
+  getTouristSafetyZones,
 } = require('../controllers/zoneController');
 
 // Public routes
 router.get('/', getAllZones);
+router.get('/tourist-safety', getTouristSafetyZones);
 router.get('/nearby', getNearbyZones);
 router.get('/:id', getZoneById);
 

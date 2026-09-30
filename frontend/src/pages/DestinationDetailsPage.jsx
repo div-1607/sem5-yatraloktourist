@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   MapPin,
   Star,
@@ -31,13 +31,13 @@ import toast from 'react-hot-toast';
 
 const DestinationDetailsPage = () => {
   const { id } = useParams();
-  const { user, isAuthenticated, toggleFavorite, isFavorite } = useAuth();
+  const { isAuthenticated, toggleFavorite, isFavorite } = useAuth();
+  const navigate = useNavigate();
 
   const [destination, setDestination] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [currentViewers, setCurrentViewers] = useState(0);
 
   // Review Form
   const [userRating, setUserRating] = useState(5);
@@ -46,7 +46,6 @@ const DestinationDetailsPage = () => {
 
   useEffect(() => {
     fetchDestination();
-    setCurrentViewers(Math.floor(Math.random() * 85) + 12);
   }, [id]);
 
   const fetchDestination = async () => {
@@ -112,7 +111,7 @@ const DestinationDetailsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[75vh] flex flex-col items-center justify-center space-y-3 bg-black-deep text-slate-100">
+      <div className="light-theme-page min-h-[75vh] flex flex-col items-center justify-center space-y-3">
         <Loader2 className="w-10 h-10 text-blue-electric animate-spin" />
         <p className="text-xs text-slate-400">Loading destination insights...</p>
       </div>
@@ -121,7 +120,7 @@ const DestinationDetailsPage = () => {
 
   if (!destination) {
     return (
-      <div className="max-w-md mx-auto py-20 text-center space-y-4 bg-black-deep text-slate-100">
+      <div className="light-theme-page max-w-md mx-auto py-20 text-center space-y-4">
         <h2 className="text-xl font-bold text-white">Destination Not Found</h2>
         <Link to="/destinations" className="glass-button-primary inline-block text-xs uppercase py-2.5 px-5">
           Back to Catalog
@@ -131,9 +130,25 @@ const DestinationDetailsPage = () => {
   }
 
   const favorited = isFavorite(destination._id);
+  const mountainDestination = /leh|ladakh|manali|shimla|mussoorie|nainital|uttarakhand|himachal|sikkim/i.test(
+    `${destination.title} ${destination.city} ${destination.state}`
+  );
+  const crowdRisk = destination.crowdStatus === 'high'
+    ? { level: 'High', reason: 'YatraLok crowd estimate is high.' }
+    : destination.crowdStatus === 'moderate'
+      ? { level: 'Moderate', reason: 'YatraLok crowd estimate is moderate.' }
+      : { level: 'Low', reason: 'YatraLok crowd estimate is low; this is not a live hazard assessment.' };
+  const suggestedStay = /mountain|nature|adventure/i.test(destination.category || '') ? '2 days suggested' : '1 day suggested';
+  const startJourney = () => {
+    if (isAuthenticated) {
+      navigate(`/dashboard?tab=journey&destination=${encodeURIComponent(destination._id)}`);
+      return;
+    }
+    navigate('/login', { state: { from: { pathname: '/dashboard' }, planDestinationId: destination._id } });
+  };
 
   return (
-    <div className="min-h-screen bg-black-deep text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="light-theme-page min-h-screen py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Top Nav Breadcrumb */}
         <div className="flex items-center justify-between">
@@ -179,7 +194,7 @@ const DestinationDetailsPage = () => {
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
             {destination.title}
           </h1>
 
@@ -197,6 +212,10 @@ const DestinationDetailsPage = () => {
               <span>{destination.location?.address || `${destination.city}, ${destination.state}`}</span>
             </div>
           </div>
+
+          <button type="button" onClick={startJourney} className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-5 py-3 text-base font-bold text-white hover:bg-blue-800">
+            <Compass className="w-5 h-5" />Plan Journey
+          </button>
         </div>
 
         {/* Full-Screen Hero Image Gallery */}
@@ -206,6 +225,13 @@ const DestinationDetailsPage = () => {
               src={destination.images?.[activeImageIndex] || destination.images?.[0]}
               alt={destination.title}
               className="w-full h-full object-cover transition-all duration-700"
+              onError={(event) => {
+                if (event.currentTarget.dataset.fallback) event.currentTarget.style.visibility = 'hidden';
+                else {
+                  event.currentTarget.dataset.fallback = 'true';
+                  event.currentTarget.src = 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=1200&q=80';
+                }
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black-deep via-black-deep/30 to-black/20" />
 
@@ -232,7 +258,7 @@ const DestinationDetailsPage = () => {
                       : 'border-white/10 opacity-60 hover:opacity-100'
                   }`}
                 >
-                  <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                  <img src={img} alt={`${destination.title} view ${idx + 1}`} className="w-full h-full object-cover" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} />
                 </button>
               ))}
             </div>
@@ -252,6 +278,16 @@ const DestinationDetailsPage = () => {
               <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
                 {destination.description}
               </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
+                <div className="rounded-xl bg-slate-50 p-4"><span className="text-xs font-semibold text-slate-500">Recommended stay</span><p className="font-bold text-slate-900 mt-1">{suggestedStay}</p><p className="text-xs text-slate-500 mt-1">YatraLok planning suggestion</p></div>
+                <div className="rounded-xl bg-slate-50 p-4"><span className="text-xs font-semibold text-slate-500">Best visiting time</span><p className="font-bold text-slate-900 mt-1">{destination.bestTimeToVisit || 'Not recorded'}</p></div>
+                <div className="rounded-xl bg-slate-50 p-4"><span className="text-xs font-semibold text-slate-500">Entry information</span><p className="font-bold text-slate-900 mt-1">{destination.entryFee || 'Not recorded'}</p></div>
+              </div>
+              <div className="rounded-xl border border-slate-200 p-4">
+                <h3 className="font-bold text-slate-900">Activities and catalog tags</h3>
+                {destination.tags?.length ? <div className="flex flex-wrap gap-2 mt-3">{destination.tags.map((tag) => <span key={tag} className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800">{tag}</span>)}</div> : <p className="text-sm text-slate-600 mt-2">Attractions and activities are not listed for this destination yet.</p>}
+              </div>
 
               {destination.tags?.length > 0 && (
                 <div className="pt-4 border-t border-white/10 flex flex-wrap gap-2">
@@ -273,17 +309,13 @@ const DestinationDetailsPage = () => {
                 <MapPin className="w-5 h-5 text-blue-electric" />
                 <span>Geo-Spatial Coordinates & Navigation</span>
               </h2>
-              <p className="text-xs text-slate-400">
-                Live perimeter mapping with automatic entry/exit detection via YatraLok Geofencing engine.
+              <p className="text-sm text-slate-600">
+                Destination coordinates from the YatraLok catalog; this map does not report live road or hazard conditions.
               </p>
 
-              <MapView
-                lat={destination.location?.lat || destination.location?.coordinates?.[1] || 27.1751}
-                lng={destination.location?.lng || destination.location?.coordinates?.[0] || 78.0421}
-                title={destination.title}
-                address={destination.location?.address}
-                className="h-80 w-full"
-              />
+              {Number.isFinite(destination.location?.lat) && Number.isFinite(destination.location?.lng)
+                ? <MapView lat={destination.location.lat} lng={destination.location.lng} title={destination.title} address={destination.location?.address} className="h-80 w-full" />
+                : <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Map coordinates are not available for this destination.</p>}
             </div>
 
             {/* Reviews Section */}
@@ -430,9 +462,9 @@ const DestinationDetailsPage = () => {
               {/* Density Progress Bar */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Current Footfall Density</span>
+                  <span className="text-slate-400">YatraLok crowd estimate</span>
                   <span className="font-mono font-bold text-blue-neon">
-                    {destination.crowdPercentage}%
+                    {destination.crowdPercentage ?? '—'}%
                   </span>
                 </div>
                 <div className="w-full h-3 rounded-full bg-black-deep overflow-hidden border border-blue-electric/30 p-0.5">
@@ -444,25 +476,26 @@ const DestinationDetailsPage = () => {
                         ? 'bg-amber-500 shadow-glow-warning'
                         : 'bg-red-500 shadow-glow-danger'
                     }`}
-                    style={{ width: `${destination.crowdPercentage}%` }}
+                    style={{ width: `${Math.max(0, Math.min(100, destination.crowdPercentage || 0))}%` }}
                   />
                 </div>
               </div>
 
-              {/* Safety Index Score Ring */}
               <div className="p-4 rounded-2xl bg-navy-950/70 border border-blue-electric/25 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Composite Safety Index
+                    Crowd-based planning risk
                   </span>
-                  <span className="text-xl font-black text-emerald-400 font-mono">
-                    94.8 / 100
+                  <span className="text-xl font-black text-slate-900">
+                    {crowdRisk.level}
                   </span>
+                  <p className="text-xs text-slate-600 mt-1">{crowdRisk.reason}</p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shadow-glow-safe">
+                <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 text-blue-700 flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
               </div>
+              <p className="text-xs text-slate-500">Crowd indicators are YatraLok estimates, not verified physical counts.</p>
             </div>
 
             {/* LIVE WEATHER WIDGET */}
@@ -470,37 +503,23 @@ const DestinationDetailsPage = () => {
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <CloudSun className="w-4 h-4 text-amber-400" />
-                  <span>Real-Time Weather</span>
+                  <span>Weather & safety</span>
                 </h3>
-                <span className="text-[10px] text-blue-neon font-mono">Live Sync</span>
+                <span className="text-xs text-slate-500">No live feed</span>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-3xl font-black text-white font-mono">26°C</span>
-                  <p className="text-xs text-slate-300 mt-0.5">Pleasant & Clear Sky</p>
+                  <span className="text-lg font-bold text-slate-900">Forecast unavailable</span>
+                  <p className="text-sm text-slate-600 mt-1">A verified weather provider is not connected.</p>
                 </div>
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
                   <CloudSun className="w-7 h-7" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 pt-2 text-xs">
-                <div className="p-2.5 rounded-xl bg-navy-950/60 border border-white/5 flex items-center gap-2">
-                  <Droplets className="w-4 h-4 text-blue-neon" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Humidity</span>
-                    <span className="font-bold text-white">48%</span>
-                  </div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-navy-950/60 border border-white/5 flex items-center gap-2">
-                  <Wind className="w-4 h-4 text-blue-electric" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Wind Speed</span>
-                    <span className="font-bold text-white">12 km/h</span>
-                  </div>
-                </div>
-              </div>
+              <p className="text-sm text-slate-700">Current rainfall, flood, landslide, snow and road conditions are not available from connected data sources.</p>
+              {mountainDestination && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">General mountain guidance: allow time to acclimatize and verify current access, snow and road conditions with local authorities before departure.</p>}
             </div>
 
             {/* Travel Essentials Card */}
@@ -515,19 +534,19 @@ const DestinationDetailsPage = () => {
                   <span className="text-slate-400 flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-blue-electric" /> Timings:
                   </span>
-                  <span className="font-semibold text-white">06:00 AM – 06:00 PM</span>
+                  <span className="font-semibold text-slate-900">{destination.timings || 'Not recorded'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-blue-electric" /> Ideal Season:
                   </span>
-                  <span className="font-semibold text-white">October to March</span>
+                  <span className="font-semibold text-slate-900">{destination.bestTimeToVisit || 'Not recorded'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400 flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-blue-electric" /> Concurrent Visitors:
+                    <Users className="w-3.5 h-3.5 text-blue-electric" /> YatraLok tourist count:
                   </span>
-                  <span className="font-mono font-bold text-blue-neon">{currentViewers} Live</span>
+                  <span className="font-semibold text-slate-900">Not provided</span>
                 </div>
               </div>
             </div>

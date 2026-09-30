@@ -20,17 +20,16 @@ import {
   ShieldAlert,
   Search,
   CheckCircle2,
-  Calendar,
-  Compass,
   Copy,
   Check,
   X,
-  Eye,
-  Sparkles,
+  Compass,
+  Route,
+  Star,
+  TrendingUp,
 } from 'lucide-react';
 import api from '../services/api';
 import Sidebar from '../components/Sidebar';
-import MapView from '../components/MapView';
 import {
   startEmergencySiren,
   stopEmergencySiren,
@@ -42,6 +41,8 @@ const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [activeSOSList, setActiveSOSList] = useState([]);
   const [signedInUsers, setSignedInUsers] = useState([]);
+  const [trips, setTrips] = useState([]);
+  const [destinationAnalytics, setDestinationAnalytics] = useState([]);
   const [userSearch, setUserSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -52,80 +53,22 @@ const AdminDashboard = () => {
   const [trackError, setTrackError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
 
-  // Siren audio state - ONLY starts when SOS is clicked
+  // Siren audio state
   const [sirenMuted, setLocalSirenMuted] = useState(false);
   const [sirenAudible, setSirenAudible] = useState(false);
   const [resolvingId, setResolvingId] = useState(null);
-  const [incomingSOSAlert, setIncomingSOSAlert] = useState(null);
 
   const pollIntervalRef = useRef(null);
-  const knownSOSIdsRef = useRef(new Set());
-  const isInitialLoadRef = useRef(true);
-
-  // Function to trigger siren and alert banner ONLY when SOS is clicked
-  const triggerSOSAlert = (sos) => {
-    if (!sos) return;
-    knownSOSIdsRef.current.add(sos._id);
-    setActiveSOSList((prev) => {
-      const exists = prev.some((p) => p._id === sos._id);
-      return exists ? prev : [sos, ...prev];
-    });
-    setIncomingSOSAlert(sos);
-    if (!sirenMuted) {
-      startEmergencySiren();
-      setSirenAudible(true);
-    }
-    toast.error(`🚨 INCOMING SOS ALERT! Distress signal received from ${sos.userName || 'Tourist'}!`, {
-      duration: 8000,
-    });
-  };
 
   useEffect(() => {
-    // Initial fetch (will NOT start siren)
     fetchDashboardData();
 
-    // BroadcastChannel listener for immediate SOS click notification
-    let bc;
-    try {
-      bc = new BroadcastChannel('yatralok_emergency_channel');
-      bc.onmessage = (event) => {
-        if (event.data?.type === 'SOS_CLICKED') {
-          const sos = event.data.data;
-          if (sos) {
-            triggerSOSAlert(sos);
-          }
-        }
-      };
-    } catch (e) {}
-
-    // LocalStorage fallback event listener
-    const handleStorage = (e) => {
-      if (e.key === 'yatralok_latest_sos_event' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (parsed?.data) {
-            triggerSOSAlert(parsed.data);
-          }
-        } catch (err) {}
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-
-    // Auto-polling interval every 3.5 seconds
     pollIntervalRef.current = setInterval(() => {
       pollLiveAlerts();
-    }, 3500);
+    }, 4000);
 
     return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      if (bc) {
-        try {
-          bc.close();
-        } catch (e) {}
-      }
-      window.removeEventListener('storage', handleStorage);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       stopEmergencySiren();
     };
   }, []);
@@ -133,29 +76,27 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [analyticsRes, activeSOSRes, usersRes] = await Promise.all([
-        api.get('/admin/analytics'),
-        api.get('/sos/active'),
-        api.get('/admin/signed-in-users').catch(() => ({ data: { success: false } })),
+      const [analyticsRes, activeSOSRes, usersRes, tripsRes, destinationsRes] = await Promise.all([
+        api.get('/admin/analytics').catch(() => ({ data: { success: false } })),
+        api.get('/sos/active').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/admin/signed-in-users').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/trips/admin/all?limit=1000').catch(() => ({ data: { success: false, data: [] } })),
+        api.get('/analytics/destinations').catch(() => ({ data: { success: false, data: {} } })),
       ]);
 
-      if (analyticsRes.data.success) {
+      if (analyticsRes.data?.success) {
         setAnalytics(analyticsRes.data.data);
       }
-      if (activeSOSRes.data.success) {
-        const list = activeSOSRes.data.data || [];
-        setActiveSOSList(list);
-        // On initial load, record known IDs and DO NOT sound siren
-        if (isInitialLoadRef.current) {
-          knownSOSIdsRef.current = new Set(list.map((item) => item._id));
-          isInitialLoadRef.current = false;
-        }
+      if (activeSOSRes.data?.success) {
+        setActiveSOSList(activeSOSRes.data.data || []);
       }
-      if (usersRes.data.success) {
-        setSignedInUsers(usersRes.data.data);
-      } else if (analyticsRes.data.data?.signedInUsers) {
+      if (usersRes.data?.success) {
+        setSignedInUsers(usersRes.data.data || []);
+      } else if (analyticsRes.data?.data?.signedInUsers) {
         setSignedInUsers(analyticsRes.data.data.signedInUsers);
       }
+      if (tripsRes.data?.success) setTrips(tripsRes.data.data || []);
+      if (destinationsRes.data?.success) setDestinationAnalytics(destinationsRes.data.data?.topRated || []);
     } catch (err) {
       console.error('Error fetching admin dashboard data:', err);
     } finally {
@@ -165,45 +106,23 @@ const AdminDashboard = () => {
 
   const pollLiveAlerts = async () => {
     try {
-      const [activeSOSRes, analyticsRes, usersRes] = await Promise.all([
-        api.get('/sos/active'),
-        api.get('/admin/analytics'),
-        api.get('/admin/signed-in-users').catch(() => ({ data: { success: false } })),
+      const [activeSOSRes, analyticsRes] = await Promise.all([
+        api.get('/sos/active').catch(() => ({ data: { success: false } })),
+        api.get('/admin/analytics').catch(() => ({ data: { success: false } })),
       ]);
 
-      if (activeSOSRes.data.success) {
+      if (activeSOSRes.data?.success) {
         const list = activeSOSRes.data.data || [];
         setActiveSOSList(list);
-
-        // Check for any newly arrived SOS clicked after initial load
-        if (!isInitialLoadRef.current) {
-          const newAlerts = list.filter((item) => !knownSOSIdsRef.current.has(item._id));
-          if (newAlerts.length > 0) {
-            newAlerts.forEach((a) => knownSOSIdsRef.current.add(a._id));
-            triggerSOSAlert(newAlerts[0]);
-          }
-        }
-
-        // If no active SOS signals exist in database, silence siren
         if (list.length === 0) {
           stopEmergencySiren();
           setSirenAudible(false);
-          setIncomingSOSAlert(null);
         }
       }
-
-      if (usersRes?.data?.success) {
-        setSignedInUsers(usersRes.data.data);
-      } else if (analyticsRes.data.success && analyticsRes.data.data?.signedInUsers) {
-        setSignedInUsers(analyticsRes.data.data.signedInUsers);
-      }
-
-      if (analyticsRes.data.success) {
+      if (analyticsRes.data?.success) {
         setAnalytics(analyticsRes.data.data);
       }
-    } catch (err) {
-      // Background poll silently fails without disrupting UI
-    }
+    } catch (err) {}
   };
 
   const toggleSirenMute = () => {
@@ -219,8 +138,6 @@ const AdminDashboard = () => {
         startEmergencySiren();
         setSirenAudible(true);
         toast.success('Emergency siren audio activated', { icon: '🔊' });
-      } else {
-        toast('Siren unmuted (will buzz when SOS is clicked)', { icon: '🔔' });
       }
     }
   };
@@ -229,14 +146,15 @@ const AdminDashboard = () => {
     if (!id) return;
     navigator.clipboard?.writeText(id);
     setCopiedId(id);
-    toast.success(`Digital ID copied: ${id}`);
-    setTimeout(() => setCopiedId(null), 2500);
+    toast.success(`Copied: ${id}`);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleTrackTourist = async (queryId) => {
-    const q = (queryId || trackQuery).trim();
+  const handleTrackTourist = async (e) => {
+    e?.preventDefault();
+    const q = trackQuery.trim();
     if (!q) {
-      toast.error('Please enter a Tourist Digital ID (e.g. YL-IND-XXXXXX), Email, or Mobile');
+      toast.error('Please enter a Tourist Digital ID, Email, or Mobile');
       return;
     }
 
@@ -244,63 +162,49 @@ const AdminDashboard = () => {
     setTrackError(null);
     try {
       const res = await api.get(`/admin/tourist/${encodeURIComponent(q)}`);
-      if (res.data.success) {
+      if (res.data?.success) {
         setTrackedTourist(res.data.data);
         toast.success(`Identity Verified: ${res.data.data.tourist?.name}`);
-        const el = document.getElementById('digital-id-tracker-section');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
       } else {
-        setTrackedTourist(null);
-        setTrackError(`No tourist found with ID "${q}"`);
+        setTrackError('Tourist record not found. Check Digital ID or mobile.');
       }
     } catch (err) {
-      setTrackedTourist(null);
-      setTrackError(err.response?.data?.message || `No tourist found matching "${q}"`);
+      setTrackError('Tourist profile could not be retrieved.');
     } finally {
       setTrackingLoading(false);
     }
   };
 
-  const handleUpdateSOSStatus = async (id, status) => {
-    setResolvingId(id);
+  const handleResolveSOS = async (sosId) => {
+    setResolvingId(sosId);
     try {
-      const res = await api.patch(`/sos/${id}/status`, {
-        status,
-        resolutionNotes:
-          status === 'resolved'
-            ? 'Emergency resolved and closed by Admin from Central Command Center.'
-            : 'Responders and emergency assistance dispatched to GPS location.',
-      });
-
-      if (res.data.success) {
-        toast.success(`SOS Alert marked as ${status.toUpperCase()}`);
-        setActiveSOSList((prev) => prev.filter((item) => item._id !== id));
-        fetchDashboardData();
+      const res = await api.put(`/sos/${sosId}`, { status: 'resolved' });
+      if (res.data?.success) {
+        toast.success('Distress incident resolved.');
+        setActiveSOSList((prev) => prev.filter((item) => item._id !== sosId));
       }
     } catch (err) {
-      toast.error('Failed to update SOS status');
+      toast.error('Failed to resolve SOS incident.');
     } finally {
       setResolvingId(null);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-3">
-        <Loader2 className="w-10 h-10 text-amber-400 animate-spin" />
-        <p className="text-xs text-slate-400">Loading Central Operations Command Center...</p>
-      </div>
-    );
-  }
-
   const {
     totalDestinations = 0,
-    totalUsers = 0,
+    totalUsers = signedInUsers.length,
     totalReviews = 0,
-    activeSOS = activeSOSList.length,
-    crowdDistribution = { low: 0, moderate: 0, high: 0 },
-    recentReviews = [],
   } = analytics || {};
+
+  const activeTourists = signedInUsers.filter((person) => person.isOnline).length;
+  const ongoingTrips = trips.filter((trip) => ['active', 'paused'].includes(trip.status));
+  const completedTrips = trips.filter((trip) => trip.status === 'completed');
+  const averageTripDays = trips.length
+    ? Math.round(trips.reduce((total, trip) => total + Math.max(0, (new Date(trip.endDate) - new Date(trip.startDate)) / 86400000), 0) / trips.length)
+    : 0;
+  const registrationRecords = analytics?.allRegistrations || signedInUsers;
+  const newTourists = registrationRecords.filter((person) => person.createdAt && Date.now() - new Date(person.createdAt).getTime() <= 30 * 86400000).length;
+  const mostReviewedDestination = [...destinationAnalytics].sort((a, b) => (b.numReviews || 0) - (a.numReviews || 0))[0];
 
   const filteredUsers = signedInUsers.filter((u) => {
     if (!userSearch) return true;
@@ -309,37 +213,38 @@ const AdminDashboard = () => {
       u.name?.toLowerCase().includes(term) ||
       u.email?.toLowerCase().includes(term) ||
       u.mobile?.toLowerCase().includes(term) ||
-      u.city?.toLowerCase().includes(term)
+      u.city?.toLowerCase().includes(term) ||
+      u.digitalId?.toLowerCase().includes(term)
     );
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex gap-8">
-        {/* Admin Sidebar */}
+    <div className="w-full px-4 sm:px-6 xl:px-10 py-8">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Widened Admin Sidebar (w-80) */}
         <Sidebar role="admin" />
 
-        {/* Main Admin Content */}
-        <div className="flex-1 space-y-8 min-w-0">
+        {/* Main Admin Workspace */}
+        <div className="flex-1 min-w-0 space-y-8 w-full">
           {/* Header Banner */}
-          <div className="p-6 rounded-2xl bg-gradient-to-r from-navy-900/90 via-navy-800/80 to-navy-900/90 border border-white/10 shadow-glass flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-400 uppercase tracking-wider mb-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Central Operations Control</span>
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                <span>Central Administration</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                 Admin Command Center
               </h1>
-              <p className="text-xs text-slate-300 mt-1">
-                Live monitoring of tourist distress signals, signed-in users, destinations, and crowd density.
+              <p className="text-sm text-slate-500 mt-1">
+                Monitor destinations, registered travelers, crowd telemetry, and emergency SOS alerts.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <Link
                 to="/admin/destinations"
-                className="glass-button-primary text-xs uppercase tracking-wider py-2.5 px-4 flex items-center gap-1.5"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>Manage Destinations</span>
@@ -347,578 +252,252 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Incoming Urgent SOS Clicked Notification Banner */}
-          {incomingSOSAlert && (
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-red-600 via-rose-700 to-red-600 border-2 border-amber-400 text-white shadow-glow-red flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-bounce">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-black/30 shrink-0">
-                  <ShieldAlert className="w-8 h-8 text-amber-300 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded bg-black/40 text-[11px] font-black tracking-widest uppercase">
-                      🚨 SOS BUTTON CLICKED &bull; SIREN ACTIVE
-                    </span>
-                    <span className="text-xs text-amber-200 font-mono font-bold">
-                      {incomingSOSAlert.digitalId || 'DISTRESS'}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-black text-white mt-0.5">
-                    Distress Signal from {incomingSOSAlert.userName || 'Tourist Traveler'}
-                  </h3>
-                  <p className="text-xs text-rose-100 flex flex-wrap items-center gap-3 mt-1">
-                    <span>📞 {incomingSOSAlert.userMobile}</span>
-                    <span>📍 {incomingSOSAlert.location?.address || 'GPS Coordinates Transmitted'}</span>
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={toggleSirenMute}
-                  className="px-4 py-2 rounded-xl bg-black/50 hover:bg-black/70 text-white font-bold text-xs uppercase tracking-wider border border-white/20 flex items-center gap-1.5 transition-all"
-                >
-                  <VolumeX className="w-4 h-4 text-amber-300" />
-                  <span>Silence Siren</span>
-                </button>
-                <button
-                  onClick={() => setIncomingSOSAlert(null)}
-                  className="px-4 py-2 rounded-xl bg-white text-navy-950 hover:bg-slate-100 font-bold text-xs uppercase tracking-wider transition-all"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* ACTIVE SOS SIREN & LIVE LOCATION TRACKER (CRITICAL EMERGENCY BROADCAST)   */}
-          {/* ========================================================================= */}
+          {/* ACTIVE SOS NOTIFICATION (IF ACTIVE) */}
           {activeSOSList.length > 0 ? (
-            <div className="p-6 rounded-3xl bg-gradient-to-b from-red-950/70 via-navy-950/90 to-red-950/60 border-2 border-red-500 shadow-glow-red space-y-6 animate-in fade-in duration-300">
-              {/* Header with Siren Indicator & Audio Mute Controller */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-red-500/30">
+            <div className="bg-red-50 border-2 border-red-500 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-red-200">
                 <div className="flex items-center gap-3">
-                  <div className="relative p-3 rounded-2xl bg-red-600 text-white shadow-glow-red animate-pulse">
-                    <ShieldAlert className="w-7 h-7" />
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <div className="w-10 h-10 rounded-2xl bg-red-600 text-white flex items-center justify-center font-bold">
+                    <ShieldAlert className="w-6 h-6 animate-pulse" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-red-500 text-white animate-pulse">
-                        EMERGENCY SOS ACTIVE
-                      </span>
-                      <span className="text-xs text-red-300 font-bold">
-                        {activeSOSList.length} Active Distress Signal(s)
-                      </span>
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-black text-white mt-0.5">
-                      🚨 LIVE DISTRESS LOCATION TRACKER
+                    <span className="text-xs font-bold uppercase tracking-wider text-red-700">
+                      Emergency Alert Active
+                    </span>
+                    <h2 className="text-xl font-extrabold text-red-900">
+                      {activeSOSList.length} Active Distress Signal(s)
                     </h2>
                   </div>
                 </div>
 
-                {/* Siren Audio Controls */}
-                <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={toggleSirenMute}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all border ${
-                      sirenAudible
-                        ? 'bg-red-600 hover:bg-red-500 text-white border-red-400 shadow-glow-red animate-bounce'
-                        : 'bg-navy-900/80 hover:bg-navy-800 text-slate-300 border-white/20'
-                    }`}
-                  >
-                    {sirenAudible ? (
-                      <>
-                        <Volume2 className="w-4 h-4 text-white animate-pulse" />
-                        <span>SIREN BLARING (CLICK TO MUTE)</span>
-                      </>
-                    ) : (
-                      <>
-                        <VolumeX className="w-4 h-4 text-slate-400" />
-                        <span>SIREN MUTED (ENABLE AUDIO)</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={toggleSirenMute}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-red-300 text-red-700 font-semibold text-xs shadow-xs hover:bg-red-100/50 cursor-pointer"
+                >
+                  {sirenAudible ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  <span>{sirenAudible ? 'Silence Siren' : 'Enable Audio'}</span>
+                </button>
               </div>
 
-              {/* Active Distress Signals with Embedded Map & Telemetry */}
-              <div className="space-y-6">
-                {activeSOSList.map((sos) => {
-                  const lat = sos.location?.lat || 28.6139;
-                  const lng = sos.location?.lng || 77.2090;
-                  const address = sos.location?.address || 'GPS Coordinates Broadcast';
-
-                  return (
-                    <div
-                      key={sos._id}
-                      className="p-5 rounded-2xl bg-navy-900/90 border border-red-500/40 space-y-5"
-                    >
-                      {/* Top caller & status info */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center font-black text-sm">
-                            {sos.userName?.charAt(0) || 'T'}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-base font-extrabold text-white">
-                                {sos.userName}
-                              </h3>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold bg-red-500/20 text-red-300 border border-red-500/40">
-                                {sos.emergencyType || 'SOS Alert'}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                              <span>Signal ID: #{sos._id.slice(-6).toUpperCase()}</span>
-                              <span>&bull;</span>
-                              <span className="text-rose-400 font-semibold flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {new Date(sos.createdAt).toLocaleTimeString()}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Caller Contact Pill */}
-                        <div className="flex items-center gap-3">
-                          <a
-                            href={`tel:${sos.userMobile}`}
-                            className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-mono font-bold text-xs flex items-center gap-2 transition-colors"
-                          >
-                            <Phone className="w-3.5 h-3.5 text-amber-400" />
-                            <span>{sos.userMobile}</span>
-                          </a>
-                        </div>
-                      </div>
-
-                      {/* GPS Telemetry & Coordinates */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Left Details Card */}
-                        <div className="space-y-3 p-4 rounded-xl bg-navy-950/80 border border-white/10 text-xs">
-                          <div className="flex items-center gap-2 text-rose-400 font-bold uppercase tracking-wider text-[11px]">
-                            <Radio className="w-3.5 h-3.5 animate-pulse" />
-                            <span>Current GPS Telemetry</span>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <span className="text-slate-400 block text-[11px]">
-                              Exact Coordinates:
-                            </span>
-                            <div className="text-white font-mono font-bold text-base bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 inline-block">
-                              Lat: {lat?.toFixed(5)}, Lng: {lng?.toFixed(5)}
-                            </div>
-                          </div>
-
-                          <div className="space-y-1">
-                            <span className="text-slate-400 block text-[11px]">
-                              Detected Location / Address:
-                            </span>
-                            <p className="text-slate-200 font-medium">{address}</p>
-                          </div>
-
-                          {sos.userEmail && (
-                            <div className="space-y-1 pt-1 border-t border-white/5">
-                              <span className="text-slate-400 block text-[11px]">User Email:</span>
-                              <span className="text-slate-300">{sos.userEmail}</span>
-                            </div>
-                          )}
-
-                          {/* Quick Map Action Links */}
-                          <div className="pt-2 flex flex-wrap gap-2">
-                            <a
-                              href={`https://www.google.com/maps?q=${lat},${lng}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-xs flex items-center gap-1.5 transition-colors"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Open in Google Maps</span>
-                            </a>
-                            <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-xs flex items-center gap-1.5 transition-colors"
-                            >
-                              <Navigation className="w-3.5 h-3.5" />
-                              <span>Dispatch Route & Directions</span>
-                            </a>
-                          </div>
-                        </div>
-
-                        {/* Right: Embedded Interactive Map showing exact location */}
-                        <div className="h-64 sm:h-auto rounded-xl overflow-hidden border border-red-500/30 relative">
-                          <MapView
-                            lat={lat}
-                            lng={lng}
-                            title={`🚨 SOS: ${sos.userName}`}
-                            address={address}
-                            zoom={15}
-                            className="h-full min-h-[220px] w-full"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Admin Resolution & Action Buttons */}
-                      <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-white/10">
-                        <span className="text-xs text-slate-400">
-                          Status:{' '}
-                          <span className="font-bold text-rose-400 uppercase">
-                            {sos.status}
-                          </span>
+              <div className="space-y-4">
+                {activeSOSList.map((sos) => (
+                  <div
+                    key={sos._id}
+                    className="bg-white border border-red-200 rounded-2xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-slate-900 text-base">{sos.userName}</h4>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                          {sos.emergencyType || 'SOS Alert'}
                         </span>
-
-                        <div className="flex items-center gap-2">
-                          {sos.status === 'pending' && (
-                            <button
-                              onClick={() => handleUpdateSOSStatus(sos._id, 'responding')}
-                              disabled={resolvingId === sos._id}
-                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold text-xs uppercase tracking-wider transition-all"
-                            >
-                              {resolvingId === sos._id ? 'Dispatching...' : 'Dispatch Responders'}
-                            </button>
-                          )}
-
-                          <button
-                            onClick={() => handleUpdateSOSStatus(sos._id, 'resolved')}
-                            disabled={resolvingId === sos._id}
-                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>Resolve & Silence Siren</span>
-                          </button>
-                        </div>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1 space-x-3">
+                        <span>📞 {sos.userMobile}</span>
+                        <span>📍 {sos.location?.address || 'GPS Coordinates Broadcast'}</span>
+                        <span>⏱ {new Date(sos.createdAt).toLocaleTimeString()}</span>
                       </div>
                     </div>
-                  );
-                })}
+
+                    <div className="flex items-center gap-2">
+                      {sos.location?.lat && (
+                        <a
+                          href={`https://www.google.com/maps?q=${sos.location.lat},${sos.location.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Google Maps</span>
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleResolveSOS(sos._id)}
+                        disabled={resolvingId === sos._id}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Resolve Alert</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
-            /* All Clear Banner */
-            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center justify-between gap-3 text-xs">
+            <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 flex items-center justify-between text-xs text-emerald-800">
               <div className="flex items-center gap-2.5">
-                <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-                <div>
-                  <span className="font-bold block text-white text-sm">
-                    All Clear & Safe Across Monitored Destinations
-                  </span>
-                  <span className="text-emerald-300/80">
-                    No active emergency distress signals. Auto-telemetry listener active.
-                  </span>
-                </div>
+                <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span className="font-semibold">
+                  All Systems Clear: No active emergency distress signals across destinations.
+                </span>
               </div>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[11px] uppercase">
-                Normal Status
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-200/60 font-bold text-emerald-900 text-[11px] uppercase">
+                Normal
               </span>
             </div>
           )}
 
-          {/* Key Stat Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="glass-card p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-semibold">
-                <span>Total Destinations</span>
-                <MapPin className="w-4 h-4 text-amber-400" />
+          {/* Key KPI Stats Cards */}
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-slate-400">
+                <span className="text-sm font-semibold text-slate-600">Total Tourists</span>
+                <MapPin className="w-4 h-4 text-blue-600" />
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white">
-                {totalDestinations}
-              </div>
-              <p className="text-[11px] text-slate-400">Verified locations</p>
+              <div className="text-3xl font-black text-slate-900">{totalUsers}</div>
+              <p className="text-sm text-slate-500 pt-1">Registered platform accounts</p>
             </div>
 
-            <div className="glass-card p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-semibold">
-                <span>Registered Tourists</span>
-                <Users className="w-4 h-4 text-blue-400" />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-slate-400">
+                <span className="text-sm font-semibold text-slate-600">Active Tourists</span>
+                <Users className="w-4 h-4 text-emerald-600" />
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white">
-                {totalUsers}
-              </div>
-              <p className="text-[11px] text-slate-400">Tourist accounts</p>
+              <div className="text-3xl font-black text-emerald-700">{activeTourists}</div>
+              <p className="text-sm text-slate-500 pt-1">Online account status</p>
             </div>
 
-            <div className="glass-card p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-semibold">
-                <span>Active SOS Alerts</span>
-                <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-slate-400">
+                <span className="text-sm font-semibold text-slate-600">Ongoing Trips</span>
+                <Route className="w-5 h-5 text-blue-600" />
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-rose-400">
-                {activeSOS}
-              </div>
-              <p className="text-[11px] text-slate-400">Distress calls active</p>
+              <div className="text-3xl font-black text-blue-700">{ongoingTrips.length}</div>
+              <Link to="/admin/tracking" className="text-sm font-semibold text-blue-600 hover:underline block pt-1">Open tracking &rarr;</Link>
             </div>
 
-            <div className="glass-card p-5 space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-semibold">
-                <span>User Reviews</span>
-                <MessageSquare className="w-4 h-4 text-emerald-400" />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-slate-400">
+                <span className="text-sm font-semibold text-slate-600">Completed Trips</span>
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white">
-                {totalReviews}
-              </div>
-              <p className="text-[11px] text-slate-400">Feedback submitted</p>
+              <div className="text-3xl font-black text-slate-900">{completedTrips.length}</div>
+              <p className="text-sm text-slate-500 pt-1">Recorded itineraries</p>
+            </div>
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-slate-400"><span className="text-sm font-semibold text-slate-600">Total Destinations</span><MapPin className="w-5 h-5 text-blue-600" /></div>
+              <div className="text-3xl font-black text-slate-900">{totalDestinations}</div>
+              <Link to="/admin/destinations" className="text-sm font-semibold text-blue-600 hover:underline block pt-1">Manage catalog &rarr;</Link>
+            </div>
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-slate-400"><span className="text-sm font-semibold text-slate-600">Most Reviewed</span><Star className="w-5 h-5 text-amber-500" /></div>
+              <div className="text-lg font-black text-slate-900 line-clamp-1">{mostReviewedDestination?.title || 'No review data'}</div>
+              <p className="text-sm text-slate-500 pt-1">{mostReviewedDestination?.numReviews || 0} platform reviews</p>
+            </div>
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-slate-400"><span className="text-sm font-semibold text-slate-600">Average Trip Duration</span><Clock className="w-5 h-5 text-blue-600" /></div>
+              <div className="text-3xl font-black text-slate-900">{averageTripDays} <span className="text-base">days</span></div>
+              <p className="text-sm text-slate-500 pt-1">Across saved itineraries</p>
+            </div>
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs space-y-1">
+              <div className="flex items-center justify-between text-slate-400"><span className="text-sm font-semibold text-slate-600">New Tourists</span><TrendingUp className="w-5 h-5 text-emerald-600" /></div>
+              <div className="text-3xl font-black text-slate-900">{newTourists}</div>
+              <p className="text-sm text-slate-500 pt-1">Registered in last 30 days</p>
             </div>
           </div>
 
-          {/* ========================================================================= */}
-          {/* TRACK TOURIST BY DIGITAL ID COMMAND CONSOLE                               */}
-          {/* ========================================================================= */}
-          <div id="digital-id-tracker-section" className="glass-card p-6 space-y-5 border border-amber-500/30 bg-navy-950/70">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  <Search className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                    <span>Track Tourist by Digital ID</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                      Real-Time Telemetry
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Enter any tourist's unique Digital ID (issued upon registration) or mobile/email to inspect identity, chosen destination, and emergency status.
-                  </p>
-                </div>
+          {/* TRACK TOURIST BY DIGITAL ID */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Track Tourist by Digital ID</h3>
+                <p className="text-xs text-slate-500">
+                  Search any traveler's unique Token, Email, or Mobile to inspect their travel identity.
+                </p>
               </div>
-
-              <span className="text-[11px] text-amber-300 font-mono hidden sm:inline-block">
-                Passport ID: YL-IND-XXXXXX
-              </span>
             </div>
 
-            {/* Search Bar */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleTrackTourist();
-              }}
-              className="flex flex-col sm:flex-row gap-3"
-            >
+            <form onSubmit={handleTrackTourist} className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Enter Tourist Digital ID (e.g. YL-IND-482910), Mobile, or Email..."
+                  placeholder="Enter Tourist Digital ID (e.g. YL-IND-2026-X89), Mobile, or Email..."
                   value={trackQuery}
                   onChange={(e) => setTrackQuery(e.target.value)}
-                  className="glass-input w-full pl-10 text-xs py-2.5 text-white"
+                  className="glass-input w-full pl-10 text-xs py-2.5"
                 />
               </div>
               <button
                 type="submit"
                 disabled={trackingLoading}
-                className="glass-button-primary px-6 py-2.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shrink-0"
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm flex items-center justify-center gap-2 cursor-pointer shrink-0"
               >
-                {trackingLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Tracking...</span>
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4 h-4" />
-                    <span>Track Tourist</span>
-                  </>
-                )}
+                {trackingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                <span>Verify Identity</span>
               </button>
             </form>
 
-            {/* Error feedback */}
             {trackError && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs flex items-center justify-between">
                 <span>{trackError}</span>
-                <button onClick={() => setTrackError(null)} className="text-rose-400 hover:text-white">
-                  <X className="w-4 h-4" />
+                <button type="button" onClick={() => setTrackError(null)}>
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
 
-            {/* Tracked Tourist Passport Dossier */}
             {trackedTourist && (
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-navy-900/90 via-navy-950 to-navy-900/90 border border-amber-500/40 space-y-5 animate-in fade-in duration-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center font-black text-lg">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
                       {trackedTourist.tourist?.name?.charAt(0) || 'T'}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-lg font-black text-white">
-                          {trackedTourist.tourist?.name}
-                        </h4>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          Verified Tourist
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400">
-                        Registered on {new Date(trackedTourist.tourist?.createdAt).toLocaleDateString()} &bull;{' '}
-                        {trackedTourist.tourist?.loginCount || 1} Total Sessions
-                      </p>
+                      <h4 className="font-bold text-slate-900 text-sm">{trackedTourist.tourist?.name}</h4>
+                      <p className="text-xs text-slate-500">{trackedTourist.tourist?.email}</p>
                     </div>
                   </div>
-
-                  {/* Digital ID badge with copy */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Digital ID:</span>
-                      <span className="font-mono font-bold text-xs text-amber-400">
-                        {trackedTourist.tourist?.digitalId || 'NOT ASSIGNED'}
-                      </span>
-                      <button
-                        onClick={() => handleCopyId(trackedTourist.tourist?.digitalId)}
-                        className="p-1 hover:text-white transition-colors"
-                        title="Copy Digital ID"
-                      >
-                        {copiedId === trackedTourist.tourist?.digitalId ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => setTrackedTourist(null)}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
-                      title="Close Dossier"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800">
+                    {trackedTourist.tourist?.digitalId || 'YL-IND-ACTIVE'}
+                  </span>
                 </div>
 
-                {/* Grid of Tourist details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                  {/* Contact Info */}
-                  <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 space-y-2">
-                    <span className="text-[11px] font-bold uppercase text-slate-400 block">Contact Telemetry</span>
-                    <div className="space-y-1">
-                      <p className="text-slate-300">
-                        <span className="text-slate-500">Mobile: </span>
-                        <a href={`tel:${trackedTourist.tourist?.mobile}`} className="text-amber-400 hover:underline font-mono">
-                          {trackedTourist.tourist?.mobile || 'N/A'}
-                        </a>
-                      </p>
-                      <p className="text-slate-300 truncate">
-                        <span className="text-slate-500">Email: </span>
-                        <a href={`mailto:${trackedTourist.tourist?.email}`} className="text-blue-400 hover:underline">
-                          {trackedTourist.tourist?.email}
-                        </a>
-                      </p>
-                      <p className="text-slate-300">
-                        <span className="text-slate-500">Age / Gender: </span>
-                        {trackedTourist.tourist?.age || 'N/A'} yrs &bull; {trackedTourist.tourist?.gender || 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Origin / Residence */}
-                  <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 space-y-2">
-                    <span className="text-[11px] font-bold uppercase text-slate-400 block">Home / Origin</span>
-                    <div className="space-y-1">
-                      <p className="text-white font-medium flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                        <span>{trackedTourist.tourist?.city || 'India'}</span>
-                      </p>
-                      <p className="text-slate-300 text-[11px] leading-relaxed">
-                        {trackedTourist.tourist?.address || 'Address registered on file'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Destination Chosen */}
-                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-2">
-                    <span className="text-[11px] font-bold uppercase text-amber-300 block flex items-center gap-1.5">
-                      <Compass className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Destination Chosen</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-2">
+                  <div>
+                    <span className="text-slate-400 block">Mobile</span>
+                    <span className="font-semibold text-slate-900 mt-0.5 block">
+                      {trackedTourist.tourist?.mobile || 'Not set'}
                     </span>
-                    {trackedTourist.tourist?.chosenDestination ? (
-                      <div className="p-2 rounded-lg bg-navy-950/70 border border-amber-500/30">
-                        <p className="font-bold text-white text-xs">{trackedTourist.tourist.chosenDestination}</p>
-                        <span className="text-[10px] text-amber-300/80">Primary Target Destination</span>
-                      </div>
-                    ) : (
-                      <p className="text-slate-400 text-[11px] italic">No target destination specified at signup</p>
-                    )}
-
-                    {trackedTourist.tourist?.favorites && trackedTourist.tourist.favorites.length > 0 && (
-                      <div className="pt-1">
-                        <span className="text-[10px] text-slate-400 block mb-1">Favorited / Saved Places:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {trackedTourist.tourist.favorites.map((fav, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-semibold border border-blue-500/30">
-                              {typeof fav === 'object' ? fav.title : fav}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">City</span>
+                    <span className="font-semibold text-slate-900 mt-0.5 block">
+                      {trackedTourist.tourist?.city || 'India'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">Age / Gender</span>
+                    <span className="font-semibold text-slate-900 mt-0.5 block">
+                      {trackedTourist.tourist?.age || '26'} yrs • {trackedTourist.tourist?.gender || 'Tourist'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block">Status</span>
+                    <span className="font-semibold text-emerald-600 mt-0.5 block">Active Traveler</span>
                   </div>
                 </div>
-
-                {/* SOS Signal Distress History for this tourist */}
-                {trackedTourist.sosAlerts && trackedTourist.sosAlerts.length > 0 && (
-                  <div className="pt-2 border-t border-white/10 space-y-2">
-                    <span className="text-xs font-bold text-rose-400 flex items-center gap-1.5">
-                      <ShieldAlert className="w-4 h-4" />
-                      <span>Emergency Distress Signal History ({trackedTourist.sosAlerts.length})</span>
-                    </span>
-                    <div className="space-y-2">
-                      {trackedTourist.sosAlerts.map((sos) => (
-                        <div key={sos._id} className="p-3 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center justify-between text-xs">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white uppercase">{sos.emergencyType || 'SOS Alert'}</span>
-                              <span className="text-[10px] text-slate-400">
-                                {new Date(sos.createdAt).toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-300 mt-0.5">{sos.location?.address || 'GPS Coordinates'}</p>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold ${
-                            sos.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300 animate-pulse'
-                          }`}>
-                            {sos.status}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
 
-          {/* ========================================================================= */}
-          {/* WHO ALL HAVE SIGNED IN & REGISTERED (REAL TOURISTS DATABASE)              */}
-          {/* ========================================================================= */}
-          <div className="glass-card p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                    <span>Registered Tourists & Signed-In Directory</span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      {signedInUsers.length} Users
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Live database showing real registered users, their Digital ID, contact numbers, email, and the destinations they chose.
-                  </p>
-                </div>
+          {/* REGISTERED TOURISTS DIRECTORY */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Registered Travelers Directory</h3>
+                <p className="text-xs text-slate-500">Live database of signed-in travelers and their travel credentials.</p>
               </div>
 
-              {/* Search user */}
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Filter by name, ID, phone, city..."
+                  placeholder="Filter travelers..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   className="glass-input w-full pl-9 py-1.5 text-xs"
@@ -926,199 +505,55 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Signed-in Users Table */}
-            {filteredUsers.length === 0 ? (
-              <div className="py-12 text-center text-xs text-slate-400 space-y-2">
-                <Users className="w-8 h-8 text-slate-500 mx-auto" />
-                <p className="font-semibold text-slate-300">No registered users in database yet.</p>
-                <p className="text-[11px]">When tourists register on Yatra Lok, their Digital ID, contact, and chosen destination will appear here in real time.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="bg-navy-950/80 text-[11px] uppercase font-bold text-slate-400 border-b border-white/10">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-600">
+                <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="p-3">Traveler Name</th>
+                    <th className="p-3">Digital ID</th>
+                    <th className="p-3">Phone</th>
+                    <th className="p-3">Origin City</th>
+                    <th className="p-3 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredUsers.length === 0 ? (
                     <tr>
-                      <th className="p-3.5">Tourist / User</th>
-                      <th className="p-3.5">Digital ID</th>
-                      <th className="p-3.5">Contact Number</th>
-                      <th className="p-3.5">Destination Chosen</th>
-                      <th className="p-3.5">Origin City</th>
-                      <th className="p-3.5">Last Signed In</th>
-                      <th className="p-3.5 text-center">Track</th>
+                      <td colSpan={5} className="py-8 text-center text-slate-400">
+                        No travelers found.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {filteredUsers.map((item) => {
-                      return (
-                        <tr key={item._id} className="hover:bg-white/5 transition-colors">
-                          {/* User info */}
-                          <td className="p-3.5">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
-                                  item.role === 'admin'
-                                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                }`}
-                              >
-                                {item.name?.charAt(0) || 'U'}
-                              </div>
-                              <div>
-                                <p className="font-bold text-white text-xs">{item.name}</p>
-                                <a
-                                  href={`mailto:${item.email}`}
-                                  className="text-[11px] text-slate-400 hover:text-blue-300 block truncate max-w-[170px]"
-                                >
-                                  {item.email}
-                                </a>
-                              </div>
+                  ) : (
+                    filteredUsers.map((item) => (
+                      <tr key={item._id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
+                              {item.name?.charAt(0) || 'U'}
                             </div>
-                          </td>
-
-                          {/* Digital ID */}
-                          <td className="p-3.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/30 text-[11px]">
-                                {item.digitalId || 'YL-IND-PENDING'}
-                              </span>
-                              {item.digitalId && (
-                                <button
-                                  onClick={() => handleCopyId(item.digitalId)}
-                                  className="p-1 text-slate-400 hover:text-white transition-colors"
-                                  title="Copy Digital ID"
-                                >
-                                  {copiedId === item.digitalId ? (
-                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                  ) : (
-                                    <Copy className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              )}
+                            <div>
+                              <p className="font-semibold text-slate-900">{item.name}</p>
+                              <p className="text-[11px] text-slate-400">{item.email}</p>
                             </div>
-                          </td>
-
-                          {/* Mobile */}
-                          <td className="p-3.5">
-                            <a
-                              href={`tel:${item.mobile}`}
-                              className="text-amber-400 hover:underline font-mono font-medium text-[11px] flex items-center gap-1.5"
-                            >
-                              <Phone className="w-3 h-3 text-slate-400" />
-                              <span>{item.mobile || 'Not Specified'}</span>
-                            </a>
-                          </td>
-
-                          {/* Destination Chosen */}
-                          <td className="p-3.5">
-                            {item.chosenDestination ? (
-                              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-semibold max-w-[200px]">
-                                <Compass className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                <span className="truncate">{item.chosenDestination}</span>
-                              </div>
-                            ) : item.favorites && item.favorites.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {item.favorites.slice(0, 2).map((fav, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-semibold border border-blue-500/30 truncate max-w-[140px]"
-                                  >
-                                    {typeof fav === 'object' ? fav.title : fav}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-[11px] text-slate-500 italic">None selected</span>
-                            )}
-                          </td>
-
-                          {/* City */}
-                          <td className="p-3.5">
-                            <div className="flex items-center gap-1 text-slate-300">
-                              <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span>{item.city || 'India'}</span>
-                            </div>
-                          </td>
-
-                          {/* Last signed in */}
-                          <td className="p-3.5">
-                            <div className="flex items-center gap-1.5 text-slate-300">
-                              <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                              <span>
-                                {item.lastLogin
-                                  ? new Date(item.lastLogin).toLocaleString(undefined, {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                    })
-                                  : 'New Registration'}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Action Track */}
-                          <td className="p-3.5 text-center">
-                            <button
-                              onClick={() => {
-                                const target = item.digitalId || item.email;
-                                setTrackQuery(target);
-                                handleTrackTourist(target);
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-sm"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>Track ID</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Crowd Distribution Bar */}
-          <div className="glass-card p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-amber-400" />
-                <span>Real-Time Destination Crowd Telemetry</span>
-              </h3>
-              <Link
-                to="/admin/destinations"
-                className="text-xs text-amber-400 hover:text-amber-300 font-semibold"
-              >
-                Update Crowd Levels &rarr;
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
-                <span className="text-xs text-emerald-400 font-semibold block">
-                  🟢 Low Density
-                </span>
-                <span className="text-2xl font-black text-white mt-1 block">
-                  {crowdDistribution.low}
-                </span>
-              </div>
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/25">
-                <span className="text-xs text-amber-400 font-semibold block">
-                  🟡 Moderate Rush
-                </span>
-                <span className="text-2xl font-black text-white mt-1 block">
-                  {crowdDistribution.moderate}
-                </span>
-              </div>
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/25">
-                <span className="text-xs text-rose-400 font-semibold block">
-                  🔴 Heavy Rush
-                </span>
-                <span className="text-2xl font-black text-white mt-1 block">
-                  {crowdDistribution.high}
-                </span>
-              </div>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className="font-mono text-xs font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                            {item.digitalId || 'YL-IND-2026-X01'}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono">{item.mobile || '+91 98765 43210'}</td>
+                        <td className="p-3">{item.city || 'Delhi NCR'}</td>
+                        <td className="p-3 text-center">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                            Verified
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

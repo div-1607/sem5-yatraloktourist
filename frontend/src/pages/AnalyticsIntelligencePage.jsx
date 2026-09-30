@@ -40,7 +40,7 @@ export default function AnalyticsIntelligencePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black-deep flex flex-col items-center justify-center text-slate-400">
+      <div className="light-theme-page min-h-screen flex flex-col items-center justify-center text-slate-600">
         <div className="w-12 h-12 border-4 border-blue-electric border-t-transparent rounded-full animate-spin"></div>
         <p className="mt-4 text-xs font-semibold tracking-wider text-slate-300">
           Aggregating Platform Intelligence & Geofence Telemetry...
@@ -54,7 +54,7 @@ export default function AnalyticsIntelligencePage() {
   const { kpis, mostVisitedDestinations, touristTrends, crowdDistribution, safetyOverview, geofenceActivity } = data;
 
   return (
-    <div className="min-h-screen bg-black-deep text-slate-100 pt-20 pb-20 px-4 sm:px-6 lg:px-8">
+    <div className="light-theme-page min-h-screen pt-20 pb-20 px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-navy-900 via-blue-royal/40 to-navy-950 border border-blue-electric/30 backdrop-blur-2xl shadow-glass-panel relative overflow-hidden">

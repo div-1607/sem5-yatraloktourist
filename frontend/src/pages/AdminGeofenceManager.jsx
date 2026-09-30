@@ -15,6 +15,7 @@ import {
 import toast from 'react-hot-toast';
 import geofenceApi from '../services/geofenceApi';
 import { Link } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
 
 export default function AdminGeofenceManager() {
   const [geofences, setGeofences] = useState([]);
@@ -103,7 +104,10 @@ export default function AdminGeofenceManager() {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="light-theme-page w-full px-4 sm:px-6 xl:px-10 py-8">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <Sidebar role="admin" />
+        <main className="flex-1 min-w-0 w-full space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-xl">
         <div>
@@ -365,6 +369,8 @@ export default function AdminGeofenceManager() {
           </div>
         )}
       </AnimatePresence>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,148 +1,341 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  Search,
-  Compass,
-  ShieldCheck,
-  AlertTriangle,
-  Users,
-  MapPin,
-  Sparkles,
-  ArrowRight,
-  Landmark,
-  ShoppingBag,
-  Clock,
-  Sun,
-  Plane,
-  Coffee,
-  CheckCircle2,
-  Heart,
-  TrendingUp,
-  Radio,
-  Zap,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import api from '../services/api';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, MapPin, Compass, ArrowRight, Star, Mail, Phone, ShieldCheck, AlertTriangle, Users } from 'lucide-react';
 import DestinationCard from '../components/DestinationCard';
-import CrowdBadge from '../components/CrowdBadge';
+import DestinationRail from '../components/DestinationRail';
+import api from '../services/api';
 
-const heroDestinations = [
+const HeroGlobe = lazy(() => import('../components/HeroGlobe'));
+
+// Hill stations that have safety data – used to show safety badge on cards
+const SAFETY_ENABLED_DESTINATIONS = [
+  'shimla', 'jammu-kashmir', 'mussoorie', 'rishikesh',
+  'manali', 'nainital', 'ooty', 'darjeeling',
+];
+
+// Curated Iconic Travel Destinations with authentic photography & real-world data
+// Includes all 8 hill stations with geofencing safety data
+const CURATED_DESTINATIONS = [
   {
+    _id: 'curated-shimla',
+    title: 'Shimla',
+    name: 'Shimla',
+    slug: 'shimla-himachal-pradesh',
+    city: 'Shimla',
+    state: 'Himachal Pradesh',
+    country: 'India',
+    rating: 4.8,
+    numReviews: 2150,
+    visitorCount: '68k/mo',
+    category: 'Mountains',
+    safetyKey: 'shimla',
+    description: 'The Queen of Hills with colonial charm, Mall Road heritage walks, and stunning Dhauladhar mountain panoramas.',
+    shortDescription: 'The Queen of Hills with colonial charm, Mall Road heritage walks, and stunning Dhauladhar mountain panoramas.',
+    images: ['https://images.unsplash.com/photo-1597074866923-dc0589150458?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-manali',
+    title: 'Manali',
+    name: 'Manali',
+    slug: 'solang-valley-manali',
+    city: 'Manali',
+    state: 'Himachal Pradesh',
+    country: 'India',
+    rating: 4.9,
+    numReviews: 1640,
+    visitorCount: '54k/mo',
+    category: 'Mountains',
+    safetyKey: 'manali',
+    description: 'Breathtaking snow-draped Himalayan peaks, Solang Valley adventures, and apple orchards in the Beas Valley.',
+    shortDescription: 'Breathtaking snow-draped Himalayan peaks, Solang Valley adventures, and apple orchards in the Beas Valley.',
+    images: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-mussoorie',
+    title: 'Mussoorie',
+    name: 'Mussoorie',
+    slug: 'mussoorie-uttarakhand',
+    city: 'Mussoorie',
+    state: 'Uttarakhand',
+    country: 'India',
+    rating: 4.7,
+    numReviews: 1420,
+    visitorCount: '52k/mo',
+    category: 'Mountains',
+    safetyKey: 'mussoorie',
+    description: 'The Queen of the Hills in Garhwal, famous for Kempty Falls, Camel\'s Back Road, and misty Gun Hill views.',
+    shortDescription: 'The Queen of the Hills in Garhwal, famous for Kempty Falls, Camel\'s Back Road, and misty Gun Hill views.',
+    images: ['https://images.unsplash.com/photo-1625057488410-22f7e1b4cce4?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-nainital',
+    title: 'Nainital',
+    name: 'Nainital',
+    slug: 'nainital-uttarakhand',
+    city: 'Nainital',
+    state: 'Uttarakhand',
+    country: 'India',
+    rating: 4.8,
+    numReviews: 1890,
+    visitorCount: '60k/mo',
+    category: 'Mountains',
+    safetyKey: 'nainital',
+    description: 'Enchanting lake district nestled in the Kumaon foothills with Naini Lake, Snow View Point, and scenic treks.',
+    shortDescription: 'Enchanting lake district nestled in the Kumaon foothills with Naini Lake, Snow View Point, and scenic treks.',
+    images: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-rishikesh',
+    title: 'Rishikesh',
+    name: 'Rishikesh',
+    slug: 'triveni-ghat-rishikesh',
+    city: 'Rishikesh',
+    state: 'Uttarakhand',
+    country: 'India',
+    rating: 4.8,
+    numReviews: 1980,
+    visitorCount: '58k/mo',
+    category: 'Adventure',
+    safetyKey: 'rishikesh',
+    description: 'The Yoga Capital of the World along the turquoise Ganges, nestled at the peaceful foothills of the Himalayas.',
+    shortDescription: 'The Yoga Capital of the World along the turquoise Ganges, nestled at the peaceful foothills of the Himalayas.',
+    images: ['https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-ooty',
+    title: 'Ooty',
+    name: 'Ooty',
+    slug: 'ooty-tamil-nadu',
+    city: 'Ooty',
+    state: 'Tamil Nadu',
+    country: 'India',
+    rating: 4.7,
+    numReviews: 1560,
+    visitorCount: '55k/mo',
+    category: 'Mountains',
+    safetyKey: 'ooty',
+    description: 'The Queen of Nilgiris with lush botanical gardens, heritage toy train, and sprawling tea plantations.',
+    shortDescription: 'The Queen of Nilgiris with lush botanical gardens, heritage toy train, and sprawling tea plantations.',
+    images: ['https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-darjeeling',
+    title: 'Darjeeling',
+    name: 'Darjeeling',
+    slug: 'darjeeling-west-bengal',
+    city: 'Darjeeling',
+    state: 'West Bengal',
+    country: 'India',
+    rating: 4.8,
+    numReviews: 1720,
+    visitorCount: '48k/mo',
+    category: 'Mountains',
+    safetyKey: 'darjeeling',
+    description: 'Land of thunderbolts with iconic tea gardens, Tiger Hill sunrise views, and the UNESCO toy train heritage.',
+    shortDescription: 'Land of thunderbolts with iconic tea gardens, Tiger Hill sunrise views, and the UNESCO toy train heritage.',
+    images: ['https://images.unsplash.com/photo-1622308644420-63c118e0f178?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-jk',
+    title: 'Jammu & Kashmir',
+    name: 'Jammu & Kashmir',
+    slug: 'jammu-kashmir',
+    city: 'Srinagar',
+    state: 'Jammu & Kashmir',
+    country: 'India',
+    rating: 4.9,
+    numReviews: 2100,
+    visitorCount: '70k/mo',
+    category: 'Mountains',
+    safetyKey: 'jammu-kashmir',
+    description: 'Paradise on Earth with Dal Lake shikaras, Mughal gardens, snow-capped peaks, and the pristine Pahalgam valley.',
+    shortDescription: 'Paradise on Earth with Dal Lake shikaras, Mughal gardens, snow-capped peaks, and the pristine Pahalgam valley.',
+    images: ['https://images.unsplash.com/photo-1597074866923-dc0589150458?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-taj-mahal',
+    title: 'Taj Mahal',
     name: 'Taj Mahal',
-    location: 'Agra, Uttar Pradesh',
-    image: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=2400&q=85',
+    slug: 'taj-mahal-agra',
+    city: 'Agra',
+    state: 'Uttar Pradesh',
+    country: 'India',
+    rating: 4.9,
+    numReviews: 2450,
+    visitorCount: '75k/mo',
+    category: 'Heritage',
+    description: 'The timeless monument of eternal love, built in gleaming white Makrana marble on the banks of Yamuna.',
+    shortDescription: 'The timeless monument of eternal love, built in gleaming white Makrana marble on the banks of Yamuna.',
+    images: ['https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=85'],
   },
   {
-    name: 'Varanasi Ghats & Ganges',
-    location: 'Varanasi, Uttar Pradesh',
-    image: 'https://images.unsplash.com/photo-1571536802807-30451e3955d8?auto=format&fit=crop&w=2400&q=85',
+    _id: 'curated-jaipur',
+    title: 'Jaipur',
+    name: 'Jaipur',
+    slug: 'amber-fort-jaipur',
+    city: 'Jaipur',
+    state: 'Rajasthan',
+    country: 'India',
+    rating: 4.8,
+    numReviews: 1890,
+    visitorCount: '62k/mo',
+    category: 'Heritage',
+    description: 'The regal Pink City celebrated for grand Amer Fort, vibrant Johari bazaars, and royal Rajput palaces.',
+    shortDescription: 'The regal Pink City celebrated for grand Amer Fort, vibrant Johari bazaars, and royal Rajput palaces.',
+    images: ['https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=85'],
   },
   {
-    name: 'Amber Fort & Palaces',
-    location: 'Jaipur, Rajasthan',
-    image: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=2400&q=85',
+    _id: 'curated-goa',
+    title: 'Goa',
+    name: 'Goa',
+    slug: 'palolem-beach-goa',
+    city: 'Panaji',
+    state: 'Goa',
+    country: 'India',
+    rating: 4.8,
+    numReviews: 3120,
+    visitorCount: '88k/mo',
+    category: 'Beaches',
+    description: 'Sun-kissed Arabian shores, Portuguese heritage villas, water sports, and tranquil palm-fringed coastlines.',
+    shortDescription: 'Sun-kissed Arabian shores, Portuguese heritage villas, water sports, and tranquil palm-fringed coastlines.',
+    images: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=85'],
   },
   {
+    _id: 'curated-varanasi',
+    title: 'Varanasi',
+    name: 'Varanasi',
+    slug: 'dashashwamedh-ghat-varanasi',
+    city: 'Varanasi',
+    state: 'Uttar Pradesh',
+    country: 'India',
+    rating: 4.9,
+    numReviews: 2780,
+    visitorCount: '95k/mo',
+    category: 'Spiritual',
+    description: 'The spiritual heart of India, renowned for holy Ganges ghats and mesmerizing evening Ganga Aarti.',
+    shortDescription: 'The spiritual heart of India, renowned for holy Ganges ghats and mesmerizing evening Ganga Aarti.',
+    images: ['https://images.unsplash.com/photo-1571536802807-30451e3955d8?auto=format&fit=crop&w=1200&q=85'],
+  },
+  {
+    _id: 'curated-kerala-backwaters',
+    title: 'Kerala Backwaters',
     name: 'Kerala Backwaters',
-    location: 'Alleppey, Kerala',
-    image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=2400&q=85',
+    slug: 'alleppey-backwaters',
+    city: 'Alleppey',
+    state: 'Kerala',
+    country: 'India',
+    rating: 4.9,
+    numReviews: 1420,
+    visitorCount: '42k/mo',
+    category: 'Nature',
+    description: 'Serene emerald waterways, traditional kettuvallam houseboats, and lush coconut lagoons in God\u2019s Own Country.',
+    shortDescription: 'Serene emerald waterways, traditional kettuvallam houseboats, and lush coconut lagoons in God\u2019s Own Country.',
+    images: ['https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=85'],
   },
   {
-    name: 'Pristine Coastal Shores',
-    location: 'Palolem Beach, Goa',
-    image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=2400&q=85',
+    _id: 'curated-leh-ladakh',
+    title: 'Leh Ladakh',
+    name: 'Leh Ladakh',
+    slug: 'pangong-tso-ladakh',
+    city: 'Leh',
+    state: 'Ladakh',
+    country: 'India',
+    rating: 4.9,
+    numReviews: 1350,
+    visitorCount: '38k/mo',
+    category: 'Mountains',
+    description: 'Spectacular high-altitude desert moonscapes, Pangong Tso crystal waters, and ancient Buddhist gompas.',
+    shortDescription: 'Spectacular high-altitude desert moonscapes, Pangong Tso crystal waters, and ancient Buddhist gompas.',
+    images: ['https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=1200&q=85'],
   },
   {
-    name: 'Kashmir Mountain Valleys',
-    location: 'Pahalgam, Jammu & Kashmir',
-    image: 'https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=2400&q=85',
-  },
-  {
-    name: 'Golden Temple (Harmandir Sahib)',
-    location: 'Amritsar, Punjab',
-    image: 'https://images.unsplash.com/photo-1588714477688-cf28a50e94f7?auto=format&fit=crop&w=2400&q=85',
-  },
-  {
-    name: 'Hampi Vijayanagara Ruins',
-    location: 'Hampi, Karnataka',
-    image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=2400&q=85',
-  },
-  {
-    name: 'Lake Pichola & City Palace',
-    location: 'Udaipur, Rajasthan',
-    image: 'https://images.unsplash.com/photo-1615836245337-f5b9b2303f10?auto=format&fit=crop&w=2400&q=85',
-  },
-  {
-    name: 'Ganges Foothills & Temples',
-    location: 'Rishikesh, Uttarakhand',
-    image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=2400&q=85',
-  },
-  {
-    name: 'Meghalaya Misty Hills',
-    location: 'Cherrapunji, Meghalaya',
-    image: 'https://images.unsplash.com/photo-1620766182966-c6eb5ed2b788?auto=format&fit=crop&w=2400&q=85',
+    _id: 'curated-udaipur',
+    title: 'Udaipur',
+    name: 'Udaipur',
+    slug: 'city-palace-udaipur',
+    city: 'Udaipur',
+    state: 'Rajasthan',
+    country: 'India',
+    rating: 4.9,
+    numReviews: 1720,
+    visitorCount: '48k/mo',
+    category: 'Heritage',
+    description: 'The romantic City of Lakes featuring opulent white marble palaces on shimmering Lake Pichola.',
+    shortDescription: 'The romantic City of Lakes featuring opulent white marble palaces on shimmering Lake Pichola.',
+    images: ['https://images.unsplash.com/photo-1615836245337-f5b9b2303f10?auto=format&fit=crop&w=1200&q=85'],
   },
 ];
 
-const iconMap = {
-  Compass,
-  Sparkles,
-  Landmark,
-  ShoppingBag,
-  Clock,
-  Sun,
-  Plane,
-  Coffee,
-};
+const POPULAR_CATEGORIES = ['All', 'Heritage', 'Mountains', 'Beaches', 'Spiritual', 'Nature', 'Adventure'];
 
 const LandingPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [featuredDestinations, setFeaturedDestinations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isHeroHovered, setIsHeroHovered] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [destinations, setDestinations] = useState(CURATED_DESTINATIONS);
+  const [heroSlide, setHeroSlide] = useState(0);
+  const [showHeroGlobe, setShowHeroGlobe] = useState(false);
   const navigate = useNavigate();
 
-  // Preload carousel images for seamless non-flicker transitions
   useEffect(() => {
-    heroDestinations.forEach((dest) => {
-      const img = new Image();
-      img.src = dest.image;
+    const preloadImages = CURATED_DESTINATIONS.map((destination) => {
+      const image = new Image();
+      image.src = destination.images[0];
+      return image;
     });
+    const timer = window.setInterval(() => {
+      setHeroSlide((current) => (current + 1) % CURATED_DESTINATIONS.length);
+    }, 4800);
+    return () => {
+      window.clearInterval(timer);
+      preloadImages.forEach((image) => image.removeAttribute('src'));
+    };
   }, []);
 
-  // Automatic smooth transition between destinations (slows down when hovered)
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroDestinations.length);
-    }, isHeroHovered ? 12000 : 6000);
+    let idleCallbackId;
+    let timeoutId;
+    const startGlobe = () => setShowHeroGlobe(true);
+    if ('requestIdleCallback' in window) {
+      idleCallbackId = window.requestIdleCallback(startGlobe, { timeout: 1400 });
+    } else {
+      timeoutId = window.setTimeout(startGlobe, 350);
+    }
+    return () => {
+      if (idleCallbackId !== undefined) window.cancelIdleCallback?.(idleCallbackId);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, []);
 
-    return () => clearInterval(timer);
-  }, [isHeroHovered]);
-
+  // Keep curated destinations first, then fill the rails with unique catalog records.
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchBackendDestinations = async () => {
       try {
-        const [catRes, featRes] = await Promise.all([
-          api.get('/destinations/categories'),
-          api.get('/destinations/featured'),
-        ]);
-
-        if (catRes.data.success) {
-          setCategories(catRes.data.data);
-        }
-        if (featRes.data.success) {
-          setFeaturedDestinations(featRes.data.data);
+        const res = await api.get('/destinations?limit=1000&sort=rating-desc');
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          const apiList = res.data.data;
+          const usedIds = new Set();
+          const curatedMatches = CURATED_DESTINATIONS.map((curated) => {
+            const match = apiList.find((item) => {
+              if (usedIds.has(item._id)) return false;
+              const sameTitle = item.title?.toLowerCase() === curated.title.toLowerCase();
+              const sameCityState = item.city?.toLowerCase() === curated.city.toLowerCase()
+                && item.state?.toLowerCase() === curated.state.toLowerCase();
+              return sameTitle || sameCityState;
+            });
+            if (!match) return null;
+            usedIds.add(match._id);
+            // Preserve safetyKey from curated data
+            return { ...match, safetyKey: curated.safetyKey };
+          }).filter(Boolean);
+          const remaining = apiList.filter((item) => !usedIds.has(item._id));
+          setDestinations([...curatedMatches, ...remaining].slice(0, 30));
         }
       } catch (err) {
-        console.error('Error fetching landing data:', err);
-      } finally {
-        setLoading(false);
+        // Fallback to rich curated local dataset seamlessly
       }
     };
 
-    fetchData();
+    fetchBackendDestinations();
   }, []);
 
   const handleSearch = (e) => {
@@ -154,281 +347,232 @@ const LandingPage = () => {
     }
   };
 
+  const filteredDestinations = (activeCategory === 'All'
+    ? destinations
+    : destinations.filter((destination) => destination.category?.toLowerCase() === activeCategory.toLowerCase())
+  ).slice(0, 30);
+
   return (
-    <div className="space-y-24 pb-20 bg-black-deep text-slate-100 min-h-screen">
-      {/* 1. HERO SECTION WITH CINEMATIC DESTINATION CAROUSEL */}
-      <section
-        onMouseEnter={() => setIsHeroHovered(true)}
-        onMouseLeave={() => setIsHeroHovered(false)}
-        className="relative min-h-[90vh] flex flex-col items-center justify-center pt-8 pb-12 overflow-hidden select-none"
-      >
-        {/* Full-Screen Video Background */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            poster="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=2400&q=85"
-          >
-            <source src="/hero-video.mp4" type="video/mp4" />
-            Your browser does not support HTML5 video.
-          </video>
-
-          {/* Subtle Dark / Transparent Overlay & Blue-Black Color Grading for Maximum Readability */}
-          <div className="absolute inset-0 bg-black-deep/45 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black-deep/75 via-navy-950/40 to-black-deep/90 pointer-events-none" />
-          
-          {/* Gentle Vignette Around Edges */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: 'radial-gradient(ellipse at center, transparent 40%, rgba(5,5,5,0.7) 100%)',
-            }}
-          />
-
-          {/* Ambient Luxury Dark Glow Orbs */}
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-blue-electric/15 rounded-full blur-[140px] pointer-events-none" />
-          <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-blue-royal/20 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute top-10 left-10 w-[400px] h-[400px] bg-navy-800/25 rounded-full blur-[100px] pointer-events-none" />
+    <div className="space-y-16 pb-16">
+      {/* 1. HERO SECTION */}
+      <section className="landing-hero relative min-h-[790px] lg:min-h-[720px] flex items-center overflow-hidden bg-[#061326]">
+        {/* Large Travel Background Image */}
+        <div className="absolute inset-0 w-full h-full z-0 bg-slate-100">
+          {CURATED_DESTINATIONS.map((destination, index) => (
+            <img
+              key={destination._id}
+              src={destination.images[0]}
+              alt={`${destination.title}, ${destination.state}`}
+              className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-1000 ${index === heroSlide ? 'opacity-100' : 'opacity-0'}`}
+              fetchPriority={index === heroSlide ? 'high' : 'auto'}
+              onError={(event) => {
+                if (event.currentTarget.dataset.fallback) {
+                  event.currentTarget.style.visibility = 'hidden';
+                } else {
+                  event.currentTarget.dataset.fallback = 'true';
+                  event.currentTarget.src = 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=2000&q=85';
+                }
+              }}
+            />
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#030b18]/95 via-[#061326]/90 to-[#07182d]/82" />
         </div>
 
-        {/* Foreground Content with Floating Luxury Glassmorphism */}
-        <div className="relative max-w-5xl mx-auto px-4 text-center z-10 w-full">
-          <div className="p-6 sm:p-10 rounded-3xl bg-black-deep/40 backdrop-blur-md border border-white/10 shadow-[0_8px_32px_0_rgba(10,31,68,0.37)] hover:border-blue-electric/30 transition-all duration-500 space-y-8">
-            {/* Top safety pill */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-navy-950/80 border border-blue-electric/30 text-blue-neon text-xs font-bold backdrop-blur-xl shadow-glow-electric"
-            >
-              <Radio className="w-4 h-4 text-blue-electric animate-pulse" />
-              <span>Futuristic Smart Tourism & Live Crowd Geofence System</span>
-            </motion.div>
+        <div className="hero-night-sky absolute inset-0 z-[1] pointer-events-none" aria-hidden="true" />
+        <div className="hero-world-map absolute inset-0 z-[1] pointer-events-none" aria-hidden="true" />
+        <div className="hero-city-lights absolute inset-0 z-[1] pointer-events-none" aria-hidden="true" />
+        <svg className="hero-flight-paths absolute inset-0 z-[2] pointer-events-none" viewBox="0 0 1100 650" preserveAspectRatio="none" aria-hidden="true">
+          <path className="hero-flight-line" d="M92 255 Q250 132 415 226 T760 241 T1030 192" />
+          <path className="hero-flight-line hero-flight-line-warm" d="M205 475 Q392 335 575 420 T930 365" />
+          <path className="hero-flight-line" d="M365 190 Q492 94 633 169 T892 139" />
+          <g className="hero-flight-points">
+            <circle cx="92" cy="255" r="3" /><circle cx="415" cy="226" r="3" />
+            <circle cx="760" cy="241" r="3" /><circle cx="1030" cy="192" r="3" />
+            <circle cx="205" cy="475" r="2.7" /><circle cx="575" cy="420" r="2.7" />
+            <circle cx="930" cy="365" r="2.7" /><circle cx="633" cy="169" r="2.7" />
+          </g>
+        </svg>
 
-            {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-tight drop-shadow-md"
-            >
-              Travel Safely, Explore{' '}
-              <span className="bg-gradient-to-r from-blue-neon via-blue-electric to-blue-royal bg-clip-text text-transparent">
-                Boundlessly
-              </span>{' '}
-              with YatraLok
-            </motion.h1>
+        {showHeroGlobe && <Suspense fallback={null}><HeroGlobe /></Suspense>}
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-base sm:text-lg text-slate-200 max-w-2xl mx-auto leading-relaxed drop-shadow-sm font-normal"
-            >
-              Discover sacred temples, royal heritage fortresses, misty hilltops, and pristine shores across India with live ML crowd predictions and instant GPS emergency SOS.
-            </motion.p>
+        {/* Hero Content */}
+        <div className="landing-hero-layout relative z-10 mx-auto grid w-full max-w-[1440px] grid-cols-1 items-center gap-4 px-5 sm:px-8 lg:grid-cols-[minmax(0,0.94fr)_minmax(420px,1.06fr)] lg:gap-0 lg:px-12 xl:px-16">
+          <div className="landing-hero-copy relative z-10 max-w-[650px] space-y-6 text-left text-white">
+            <div className="inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.08] px-4 py-2 text-sm font-semibold text-sky-100 shadow-sm backdrop-blur-md">
+              <Compass className="w-4 h-4 text-sky-300" />
+              <span>Smart Tourism & Discovery Platform</span>
+            </div>
+
+            <div className="space-y-3">
+              <h1 className="hero-brand-title text-6xl font-black leading-none sm:text-7xl xl:text-8xl">
+                YatraLok
+              </h1>
+              <p className="max-w-xl text-2xl font-semibold leading-tight text-white sm:text-3xl">
+                Discover India&apos;s most beautiful destinations.
+              </p>
+              <p className="max-w-lg text-base leading-relaxed text-slate-200 sm:text-lg">
+                Find places worth the journey, understand local crowd conditions, and plan your next route with YatraLok.
+              </p>
+            </div>
 
             {/* Search Bar */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="max-w-2xl mx-auto"
-            >
+            <div className="max-w-xl pt-1">
               <form
                 onSubmit={handleSearch}
-                className="p-2 rounded-2xl bg-black-midnight/80 border border-blue-electric/35 backdrop-blur-2xl shadow-glass-panel flex items-center gap-2"
+                className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white p-2.5 shadow-xl shadow-black/20"
               >
                 <div className="pl-3 text-slate-400">
-                  <Search className="w-5 h-5 text-blue-electric" />
+                  <Search className="w-5 h-5 text-blue-600" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Search by monument, state, city (e.g. Kedarnath, Taj Mahal, Goa)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent text-white placeholder-slate-500 text-sm focus:outline-none px-2"
+                  placeholder="Search destination, city or state"
+                  className="w-full min-w-0 bg-transparent px-2 py-3 text-base text-slate-800 placeholder-slate-400 focus:outline-none"
                 />
                 <button
                   type="submit"
-                  className="glass-button-primary shrink-0 py-2.5 px-6 text-xs uppercase tracking-wider cursor-pointer"
+                  className="shrink-0 rounded-xl bg-blue-600 px-6 py-3.5 text-base font-bold text-white shadow-sm transition-all duration-150 hover:bg-blue-700 cursor-pointer"
                 >
-                  Search Places
+                  Explore
                 </button>
               </form>
 
-              {/* Quick Suggestions */}
-              <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs text-slate-400">
-                <span className="font-bold text-slate-300">Trending Now:</span>
-                {['Kedarnath', 'Taj Mahal', 'Varanasi', 'Jaipur', 'Radhanagar Beach', 'Manali'].map((tag) => (
+              <div className="mt-5 flex flex-wrap items-center justify-start gap-2.5 text-sm text-slate-200">
+                <span className="mr-1 font-semibold text-slate-100">Popular:</span>
+                {['Shimla', 'Manali', 'Nainital', 'Darjeeling', 'Ooty', 'Rishikesh'].map((item) => (
                   <button
-                    key={tag}
+                    key={item}
                     type="button"
-                    onClick={() => navigate(`/destinations?search=${tag}`)}
-                    className="px-3 py-1 rounded-full bg-navy-950/70 hover:bg-blue-royal/40 hover:text-white border border-blue-electric/20 text-slate-300 transition-colors shadow-glass cursor-pointer"
+                    onClick={() => navigate(`/destinations?search=${encodeURIComponent(item)}`)}
+                    className="rounded-full border border-white/15 bg-white/[0.08] px-3.5 py-1.5 font-semibold text-white transition-colors hover:border-sky-300/50 hover:bg-white/15 cursor-pointer"
                   >
-                    {tag}
+                    {item}
                   </button>
                 ))}
               </div>
-            </motion.div>
+            </div>
+          </div>
+          <div className="landing-hero-globe-space" aria-hidden="true" />
+        </div>
+      </section>
+
+      {/* 2. CURATED TRAVEL DESTINATIONS – SINGLE SCROLLABLE ROW */}
+      <section className="w-full px-4 sm:px-6 xl:px-8 space-y-9">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <span className="text-sm font-bold text-blue-700 tracking-wider uppercase">
+              Curated Destinations
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-1">
+              Top Places to Visit in India
+            </h2>
+            <p className="text-base text-slate-600 mt-2 max-w-2xl">
+              Handpicked hill stations, cultural marvels, tranquil beaches, and majestic mountain escapes for your next journey.
+            </p>
           </div>
 
-          {/* Carousel Destination Tag & Subtle Blue Theme Indicators */}
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 px-2 z-20">
-            {/* Active Landmark Info Pill */}
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black-midnight/70 border border-blue-electric/30 text-xs text-slate-300 backdrop-blur-xl shadow-glass"
+          {/* Popular Categories Filter */}
+          <div className="flex flex-wrap gap-2">
+            {POPULAR_CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-150 cursor-pointer ${
+                  activeCategory === cat
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Single scrollable row with bigger cards */}
+        <DestinationRail title="Explore India" destinations={filteredDestinations} />
+
+        {/* "View More Destinations" Button */}
+        <div className="pt-6 text-center">
+          <button
+            type="button"
+            onClick={() => navigate('/destinations')}
+            className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full bg-blue-700 hover:bg-blue-800 text-white font-bold text-base shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-102"
+          >
+            <span>View More Destinations</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <p className="text-sm text-slate-500 mt-3">
+            Explore 370+ destinations across all 28 states and union territories
+          </p>
+        </div>
+      </section>
+
+      {/* 3. ABOUT SECTION (CLEAN & MINIMAL) */}
+      <section id="about" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 shadow-xs grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          <div className="space-y-4">
+            <span className="text-xs font-bold text-blue-600 tracking-wider uppercase">
+              About YatraLok
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
+              A Modern Way to Discover & Experience Incredible India
+            </h3>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              YatraLok is designed to make Indian travel seamless, safe, and inspiring. We bring together iconic heritage monuments, hidden scenic gems, and real-time tourist insights into one clean, modern travel platform.
+            </p>
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                <h4 className="font-bold text-slate-900 text-base">370+ Verified Places</h4>
+                <p className="text-xs text-slate-500 mt-0.5">Accurate descriptions, locations, and traveler ratings</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                <h4 className="font-bold text-slate-900 text-base">Safe Exploration</h4>
+                <p className="text-xs text-slate-500 mt-0.5">Live crowd updates and instant emergency SOS access</p>
+              </div>
+            </div>
+          </div>
+          <div className="relative rounded-2xl overflow-hidden shadow-sm h-72 sm:h-80">
+            <img
+              src="https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80"
+              alt="Hampi Heritage India"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 4. CONTACT SECTION (SIMPLE & CLEAN) */}
+      <section id="contact" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-blue-50/60 rounded-3xl border border-blue-100 p-8 sm:p-12 text-center max-w-3xl mx-auto space-y-4">
+          <span className="text-xs font-bold text-blue-600 tracking-wider uppercase">
+            Have Questions?
+          </span>
+          <h3 className="text-2xl font-extrabold text-slate-900">
+            Get in Touch with the YatraLok Team
+          </h3>
+          <p className="text-sm text-slate-600 max-w-lg mx-auto">
+            Need travel recommendations, partnership inquiries, or assistance with tourist support? We are here to help.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 text-sm font-semibold">
+            <a
+              href="mailto:contact@yatralok.com"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-slate-200 text-slate-800 hover:text-blue-600 shadow-xs"
             >
-              <MapPin className="w-3.5 h-3.5 text-blue-electric" />
-              <span className="font-semibold text-white">{heroDestinations[currentSlide].name}</span>
-              <span className="text-slate-500">•</span>
-              <span className="text-blue-neon">{heroDestinations[currentSlide].location}</span>
-            </motion.div>
-
-            {/* Subtle Carousel Indicators */}
-            <div className="flex items-center gap-1.5 p-1 rounded-full bg-black-midnight/60 border border-white/5 backdrop-blur-md">
-              {heroDestinations.map((dest, idx) => (
-                <button
-                  key={dest.name}
-                  type="button"
-                  onClick={() => setCurrentSlide(idx)}
-                  title={`${dest.name}, ${dest.location}`}
-                  className={`transition-all duration-300 rounded-full h-1.5 cursor-pointer ${
-                    currentSlide === idx
-                      ? 'w-6 bg-blue-electric shadow-[0_0_8px_#3B82F6]'
-                      : 'w-1.5 bg-slate-500/40 hover:bg-slate-400'
-                  }`}
-                  aria-label={`Go to ${dest.name}`}
-                />
-              ))}
-            </div>
+              <Mail className="w-4 h-4 text-blue-600" />
+              <span>contact@yatralok.com</span>
+            </a>
+            <a
+              href="tel:1363"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-slate-200 text-slate-800 hover:text-blue-600 shadow-xs"
+            >
+              <Phone className="w-4 h-4 text-blue-600" />
+              <span>Tourist Helpline: 1363</span>
+            </a>
           </div>
-        </div>
-      </section>
-
-      {/* 2. ANIMATED STATISTICS COUNTER */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          {[
-            { label: 'Active Tourists', value: '120,000+', icon: Users, color: 'text-blue-electric' },
-            { label: 'Verified Destinations', value: '500+', icon: Landmark, color: 'text-blue-neon' },
-            { label: 'Crowd Safety Index', value: '99.4%', icon: ShieldCheck, color: 'text-emerald-400' },
-            { label: 'SOS Response Window', value: '< 3 Mins', icon: AlertTriangle, color: 'text-red-400' },
-          ].map((stat, idx) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.1 }}
-                className="glass-card p-6 text-center space-y-3"
-              >
-                <div className="w-10 h-10 mx-auto rounded-xl bg-navy-950/80 border border-blue-electric/30 flex items-center justify-center">
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
-                  {stat.value}
-                </div>
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {stat.label}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 3. TOURISM CATEGORIES CARDS */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-neon uppercase tracking-widest mb-2">
-              <Sparkles className="w-3.5 h-3.5 text-blue-electric" />
-              <span>Explore Themes</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white">
-              Curated Travel Collections
-            </h2>
-          </div>
-          <Link
-            to="/destinations"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-neon hover:text-white transition-colors"
-          >
-            <span>Browse All Places</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-          {categories.map((cat, idx) => {
-            const IconComponent = iconMap[cat.icon] || Compass;
-            return (
-              <motion.div
-                key={cat.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
-                onClick={() => navigate(`/destinations?category=${encodeURIComponent(cat.name)}`)}
-                className="group cursor-pointer relative p-6 rounded-2xl bg-black-midnight/70 backdrop-blur-2xl border border-blue-electric/25 hover:border-blue-electric/60 shadow-glass hover:shadow-glass-hover transition-all duration-300 space-y-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-navy-950/80 border border-blue-electric/30 flex items-center justify-center text-blue-neon group-hover:scale-110 transition-transform shadow-glow-electric">
-                  <IconComponent className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-blue-electric transition-colors">
-                    {cat.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                    {cat.description || 'Explore authentic highlights and heritage.'}
-                  </p>
-                </div>
-                <div className="pt-2 flex items-center text-xs font-bold text-blue-neon group-hover:text-white gap-1 transition-colors">
-                  <span>View listings</span>
-                  <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 4. FEATURED DESTINATIONS */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-neon uppercase tracking-widest mb-2">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-electric" />
-              <span>Verified Highlights</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white">
-              Trending Destinations with Live Crowd Feeds
-            </h2>
-          </div>
-          <Link
-            to="/destinations"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-neon hover:text-white transition-colors"
-          >
-            <span>View Full Directory</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredDestinations.slice(0, 6).map((dest) => (
-            <DestinationCard key={dest._id} destination={dest} />
-          ))}
         </div>
       </section>
     </div>

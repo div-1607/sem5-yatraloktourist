@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Radio } from 'lucide-react';
+import { Radio } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import SOSModal from './SOSModal';
 
 const FloatingSOS = () => {
+  const { user, isAuthenticated } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Only show SOS when logged in as a tourist; otherwise do not show
+  const isTourist = isAuthenticated && user && user.role === 'tourist';
+  if (!isTourist) {
+    return null;
+  }
 
   return (
     <>

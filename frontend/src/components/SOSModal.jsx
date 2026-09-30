@@ -179,7 +179,7 @@ const SOSModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-navy-900 border-2 border-red-500 rounded-3xl shadow-glow-red overflow-hidden">
+      <div className="relative w-full max-w-md bg-white border-2 border-red-500 rounded-3xl shadow-xl overflow-hidden">
         {/* Urgent Header */}
         <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 px-6 py-4 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -211,7 +211,7 @@ const SOSModal = ({ isOpen, onClose }) => {
                 <CheckCircle2 className="w-9 h-9" />
               </div>
               <div>
-                <h4 className="text-xl font-black text-white">
+                <h4 className="text-xl font-black text-slate-900">
                   Location Dispatched to Admin!
                 </h4>
                 <p className="text-xs text-rose-300 font-semibold mt-1">
@@ -220,7 +220,7 @@ const SOSModal = ({ isOpen, onClose }) => {
               </div>
 
               {/* Coordinates sent card */}
-              <div className="p-4 rounded-2xl bg-navy-950/80 border border-emerald-500/30 text-left space-y-2">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-emerald-200 text-left space-y-2">
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span>Distress Ticket ID:</span>
                   <span className="text-amber-400 font-mono font-bold">
@@ -242,7 +242,7 @@ const SOSModal = ({ isOpen, onClose }) => {
               </div>
 
               {/* Instant Call Hotlines */}
-              <div className="p-3.5 rounded-xl bg-navy-950/60 border border-white/10 text-left space-y-2.5">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-left space-y-2.5">
                 <p className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
                   Direct Emergency Hotlines:
                 </p>
@@ -266,7 +266,7 @@ const SOSModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={onClose}
-                className="w-full py-3 rounded-xl bg-navy-800 hover:bg-navy-700 text-slate-200 text-xs font-bold transition-colors"
+                className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition-colors"
               >
                 Close Window
               </button>
@@ -275,7 +275,7 @@ const SOSModal = ({ isOpen, onClose }) => {
             /* Instant Single-Action SOS Option */
             <div className="space-y-6">
               {/* Location telemetry display */}
-              <div className="p-4 rounded-2xl bg-navy-950/90 border border-white/15 space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
                     <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
@@ -292,7 +292,7 @@ const SOSModal = ({ isOpen, onClose }) => {
                   </button>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-navy-900/90 border border-blue-electric/30 flex items-start gap-3 shadow-glass">
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3 shadow-sm">
                   <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400 shrink-0 mt-0.5 border border-rose-500/30">
                     <MapPin className="w-5 h-5 text-rose-500 animate-pulse" />
                   </div>

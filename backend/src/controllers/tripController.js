@@ -1,5 +1,6 @@
 const Trip = require('../models/Trip');
 const AuditLog = require('../models/AuditLog');
+const { sendJourneyEmail } = require('../config/email');
 
 /**
  * @desc    Create a new trip
@@ -49,7 +50,7 @@ const getUserTrips = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
-      .populate('waypoints.destination', 'title slug city images');
+      .populate('waypoints.destination', 'title slug city state images location rating category shortDescription crowdStatus crowdPercentage bestTimeToVisit tags timings');
 
     const total = await Trip.countDocuments(query);
 
@@ -75,7 +76,7 @@ const getUserTrips = async (req, res) => {
 const getTripById = async (req, res) => {
   try {
     const trip = await Trip.findOne({ _id: req.params.id, user: req.user._id })
-      .populate('waypoints.destination', 'title slug city state images location rating');
+      .populate('waypoints.destination', 'title slug city state images location rating category shortDescription crowdStatus crowdPercentage bestTimeToVisit tags timings');
 
     if (!trip) {
       return res.status(404).json({ success: false, message: 'Trip not found' });
@@ -101,7 +102,7 @@ const updateTrip = async (req, res) => {
     }
 
     const allowedFields = [
-      'title', 'description', 'startDate', 'endDate', 'status',
+      'title', 'description', 'startingLocation', 'travelerCount', 'startDate', 'endDate', 'status',
       'tripType', 'waypoints', 'companions', 'budget', 'tags',
       'currentLocation', 'totalDistanceKm', 'rating', 'feedback',
     ];
@@ -224,6 +225,50 @@ const updateWaypointStatus = async (req, res) => {
 };
 
 /**
+ * @desc    Email a saved itinerary to the authenticated user's account email
+ * @route   POST /api/trips/:tripId/email
+ * @access  Private
+ */
+const emailTripItinerary = async (req, res) => {
+  try {
+    const trip = await Trip.findOne({ _id: req.params.tripId, user: req.user._id })
+      .populate('waypoints.destination', 'title city state crowdStatus crowdPercentage tags bestTimeToVisit timings');
+
+    if (!trip) {
+      return res.status(404).json({ success: false, message: 'Trip not found.' });
+    }
+    if (!req.user.email) {
+      return res.status(400).json({ success: false, message: 'Your account does not have an email address.' });
+    }
+
+    try {
+      const result = await sendJourneyEmail(req.user.email, trip, req.user.name);
+      trip.itineraryEmailedAt = new Date();
+      await trip.save();
+      return res.status(200).json({
+        success: true,
+        message: 'Journey itinerary emailed successfully.',
+        data: {
+          email: req.user.email,
+          messageId: result?.id || result?.messageId,
+          itineraryEmailedAt: trip.itineraryEmailedAt,
+        },
+      });
+    } catch (emailError) {
+      const notConfigured = emailError.code === 'RESEND_NOT_CONFIGURED';
+      return res.status(notConfigured ? 503 : 502).json({
+        success: false,
+        message: notConfigured
+          ? 'Email delivery is not configured. Add RESEND_API_KEY to backend/.env and restart the server.'
+          : 'Resend could not deliver the itinerary. Check the Resend account and sender setup, then try again.',
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Could not prepare this itinerary email.' });
+  }
+};
+
+/**
  * @desc    Get all trips (Admin)
  * @route   GET /api/trips/admin/all
  * @access  Admin
@@ -265,5 +310,6 @@ module.exports = {
   deleteTrip,
   updateTripStatus,
   updateWaypointStatus,
+  emailTripItinerary,
   getAllTripsAdmin,
 };

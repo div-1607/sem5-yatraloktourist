@@ -17,6 +17,8 @@ const waypointSchema = new mongoose.Schema({
     enum: ['pending', 'visited', 'skipped'],
     default: 'pending',
   },
+  stayDurationDays: { type: Number, min: 0, default: 0 },
+  activities: [{ type: String, trim: true }],
   notes: { type: String, default: '' },
   order: { type: Number, default: 0 },
 });
@@ -40,6 +42,8 @@ const tripSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    startingLocation: { type: String, trim: true, default: '' },
+    travelerCount: { type: Number, min: 1, default: 1 },
     startDate: {
       type: Date,
       required: [true, 'Start date is required'],
@@ -54,6 +58,7 @@ const tripSchema = new mongoose.Schema(
       default: 'planning',
       index: true,
     },
+    itineraryEmailedAt: { type: Date, default: null },
     tripType: {
       type: String,
       enum: ['solo', 'couple', 'family', 'group', 'business'],

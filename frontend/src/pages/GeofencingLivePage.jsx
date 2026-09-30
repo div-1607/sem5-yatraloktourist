@@ -204,7 +204,7 @@ export default function GeofencingLivePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black-deep text-slate-100 pt-20 pb-16 px-4 sm:px-6 lg:px-8">
+    <div className="light-theme-page min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8">
       {/* Top Banner Header */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6 rounded-2xl bg-black-midnight/80 border border-blue-electric/25 backdrop-blur-xl shadow-glass-card">
@@ -260,14 +260,16 @@ export default function GeofencingLivePage() {
               Simulate Movement Step
             </button>
 
-            {/* Emergency SOS Button */}
-            <button
-              onClick={() => setSosModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-600/40 animate-pulse transition-all cursor-pointer"
-            >
-              <ShieldAlert className="w-4 h-4" />
-              Emergency SOS
-            </button>
+            {/* Emergency SOS Button (Only for logged in tourist) */}
+            {user?.role === 'tourist' && (
+              <button
+                onClick={() => setSosModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-lg shadow-red-600/40 animate-pulse transition-all cursor-pointer"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                Emergency SOS
+              </button>
+            )}
           </div>
         </div>
 
@@ -289,12 +291,14 @@ export default function GeofencingLivePage() {
                   <p className="text-xs text-red-200/90">{displayWarning.message}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setSosModalOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow cursor-pointer"
-              >
-                Trigger SOS
-              </button>
+              {user?.role === 'tourist' && (
+                <button
+                  onClick={() => setSosModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow cursor-pointer"
+                >
+                  Trigger SOS
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

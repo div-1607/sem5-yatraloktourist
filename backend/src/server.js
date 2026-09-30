@@ -37,6 +37,8 @@ const crowdPredictionRoutes = require('../../modules/crowd-prediction/routes/cro
 const recommendationRoutes = require('../../modules/recommendation-engine/routes/recommendationRoutes');
 const analyticsRoutes = require('../../modules/analytics-dashboard/routes/analyticsRoutes');
 const { seedGeofencesAndHazards } = require('./utils/geofenceSeeder');
+const { seedTouristSafetyZones } = require('./utils/touristSafetyZones');
+const { ensureHillStationDestinations } = require('./utils/hillStationDestinations');
 
 // Socket.IO
 let io;
@@ -155,6 +157,8 @@ const startServer = async () => {
 
     // Seed initial Geofences & Hazard Zones if empty
     await seedGeofencesAndHazards();
+    await seedTouristSafetyZones();
+    await ensureHillStationDestinations();
 
     server.listen(PORT, () => {
       console.log(`\n🚀 [YATRA LOK BACKEND] Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);

@@ -28,10 +28,16 @@ import RecommendationsHubPage from './pages/RecommendationsHubPage';
 import CrowdSafetyForecastPage from './pages/CrowdSafetyForecastPage';
 import AnalyticsIntelligencePage from './pages/AnalyticsIntelligencePage';
 import AdminGeofenceManager from './pages/AdminGeofenceManager';
+import AdminTouristTracking from './pages/AdminTouristTracking';
+import AdminDestinationAnalytics from './pages/AdminDestinationAnalytics';
+import AdminCrowdMonitoring from './pages/AdminCrowdMonitoring';
+import AdminWorkspacePage from './pages/AdminWorkspacePage';
+import AdminRiskMonitoring from './pages/AdminRiskMonitoring';
+import AdminNotifications from './pages/AdminNotifications';
 
 const AdminLayout = ({ children }) => {
   return (
-    <div className="bg-black-deep text-slate-100 min-h-screen">
+    <div className="bg-slate-50 text-slate-900 min-h-screen">
       {children}
     </div>
   );
@@ -42,31 +48,30 @@ function App() {
     <AuthProvider>
       <LiveLocationProvider>
         <Router>
-        <div className="flex flex-col min-h-screen bg-black-deep text-slate-100 selection:bg-blue-electric selection:text-white">
-          {/* Luxury Dark Glass Toast Notifications */}
+        <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 selection:bg-blue-600 selection:text-white">
+          {/* Modern Clean Toast Notifications */}
           <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
               style: {
-                background: 'rgba(10, 31, 68, 0.88)',
-                color: '#F8FAFC',
-                border: '1px solid rgba(59, 130, 246, 0.35)',
-                backdropFilter: 'blur(20px)',
-                boxShadow: '0 12px 35px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 130, 246, 0.2)',
+                background: '#FFFFFF',
+                color: '#0F172A',
+                border: '1px solid #E2E8F0',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                 fontSize: '13px',
                 fontWeight: '600',
               },
               success: {
                 iconTheme: {
                   primary: '#10B981',
-                  secondary: '#050505',
+                  secondary: '#FFFFFF',
                 },
               },
               error: {
                 iconTheme: {
                   primary: '#EF4444',
-                  secondary: '#050505',
+                  secondary: '#FFFFFF',
                 },
               },
             }}
@@ -81,6 +86,7 @@ function App() {
               {/* Public & Feature Module Pages */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/admin/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/destinations" element={<DestinationsListPage />} />
@@ -111,10 +117,17 @@ function App() {
                       <Routes>
                         <Route path="/" element={<AdminDashboard />} />
                         <Route path="/destinations" element={<AdminDestinations />} />
+                        <Route path="/tracking" element={<AdminTouristTracking />} />
+                        <Route path="/crowd" element={<AdminCrowdMonitoring />} />
+                        <Route path="/risk" element={<AdminRiskMonitoring />} />
+                        <Route path="/notifications" element={<AdminNotifications />} />
+                        <Route path="/bookings" element={<AdminWorkspacePage />} />
+                        <Route path="/reports" element={<AdminWorkspacePage />} />
+                        <Route path="/settings" element={<AdminWorkspacePage />} />
                         <Route path="/geofences" element={<AdminGeofenceManager />} />
                         <Route path="/users" element={<AdminUsers />} />
                         <Route path="/sos" element={<AdminSOS />} />
-                        <Route path="/analytics" element={<AnalyticsIntelligencePage />} />
+                        <Route path="/analytics" element={<AdminDestinationAnalytics />} />
                       </Routes>
                     </AdminLayout>
                   </AdminRoute>

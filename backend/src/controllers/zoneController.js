@@ -1,5 +1,53 @@
 const Zone = require('../models/Zone');
 const AuditLog = require('../models/AuditLog');
+const { getSafetyDestinationOptions } = require('../utils/touristSafetyZones');
+
+const getTouristSafetyZones = async (req, res) => {
+  try {
+    const destinationKey = String(req.query.destination || '');
+    const destination = getSafetyDestinationOptions().find((option) => option.key === destinationKey);
+    if (!destination) {
+      return res.status(400).json({
+        success: false,
+        message: `Choose a valid destination: ${getSafetyDestinationOptions().map((d) => d.label).join(', ')}.`,
+        destinations: getSafetyDestinationOptions(),
+      });
+    }
+
+    const zones = await Zone.find({
+      isActive: true,
+      'metadata.safetyCatalog': true,
+      'metadata.safetyDestination': destinationKey,
+    }).sort({ 'metadata.safetyOrder': 1 });
+
+    const getMeta = (zone, key) => {
+      if (!zone.metadata) return undefined;
+      return zone.metadata instanceof Map ? zone.metadata.get(key) : zone.metadata[key];
+    };
+
+    const sources = [...new Map(zones.map((zone) => {
+      const url = getMeta(zone, 'sourceUrl');
+      const label = getMeta(zone, 'sourceLabel');
+      return [url, { label: label || 'Official Disaster Authority', url }];
+    }).filter(([url]) => Boolean(url))).values()];
+
+    const emergencyContacts = zones[0] ? getMeta(zones[0], 'destinationEmergencyContacts') || [] : [];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        destination,
+        emergencyContacts,
+        zones,
+        boundaryDisclaimer: 'Circles are approximate planning buffers around named landmarks, not official surveyed hazard boundaries. Check current district and disaster-management advisories.',
+        sources,
+      },
+    });
+  } catch (error) {
+    console.error('getTouristSafetyZones error:', error);
+    res.status(500).json({ success: false, message: 'Could not load tourist safety zones.' });
+  }
+};
 
 /**
  * @desc    Create a new zone
@@ -248,6 +296,7 @@ const toggleZoneStatus = async (req, res) => {
 };
 
 module.exports = {
+  getTouristSafetyZones,
   createZone,
   getAllZones,
   getZoneById,

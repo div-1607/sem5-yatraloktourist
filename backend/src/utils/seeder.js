@@ -7,6 +7,7 @@ const SOSRequest = require('../models/SOSRequest');
 const { connectDB, disconnectDB } = require('../config/db');
 const { CATEGORIES, CROWD_LEVELS } = require('../config/constants');
 const additionalDestinations = require('./additionalDestinations');
+const { hillStationDestinations } = require('./hillStationDestinations');
 require('dotenv').config();
 
 const sampleCategories = [
@@ -65,6 +66,13 @@ const sampleCategories = [
     icon: 'Coffee',
     description: 'Artisanal cafes, authentic regional delicacies, and culinary hotspots.',
     image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&auto=format&fit=crop&q=80',
+  },
+  {
+    name: 'Hill Stations',
+    slug: 'hill-stations',
+    icon: 'Mountain',
+    description: 'Snow-draped peaks, lush pine valleys, mountain ridges, and serene hill escapes.',
+    image: 'https://images.unsplash.com/photo-1597074866923-dc0589150458?w=800&auto=format&fit=crop&q=80',
   },
 ];
 
@@ -3051,8 +3059,8 @@ const seedData = async () => {
     });
 
     // 3. Seed Destinations
-    console.log('[Seeder] Seeding destinations across Delhi, Ghaziabad, Aligarh, Meerut, Agra, Indore, Jaipur, Mumbai...');
-    const allDestinationsList = [...sampleDestinations, ...additionalDestinations];
+    console.log('[Seeder] Seeding destinations across Delhi, Ghaziabad, Aligarh, Meerut, Agra, Indore, Jaipur, Mumbai, Shimla, Manali, Mussoorie, Nainital, Rishikesh, Ooty, Darjeeling, Kashmir...');
+    const allDestinationsList = [...sampleDestinations, ...additionalDestinations, ...hillStationDestinations];
     const preparedDestinations = allDestinationsList.map((d, index) => ({
       ...d,
       slug:

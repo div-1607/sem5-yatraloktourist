@@ -9,7 +9,8 @@ const CATEGORIES = [
   'Old Towns',
   'Beaches',
   'Airports',
-  'Cafes & Restaurants'
+  'Cafes & Restaurants',
+  'Hill Stations'
 ];
 
 const CROWD_LEVELS = {
