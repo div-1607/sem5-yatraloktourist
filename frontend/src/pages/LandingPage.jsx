@@ -162,29 +162,23 @@ const LandingPage = () => {
         onMouseLeave={() => setIsHeroHovered(false)}
         className="relative min-h-[90vh] flex flex-col items-center justify-center pt-8 pb-12 overflow-hidden select-none"
       >
-        {/* Full-Screen Destination Image Carousel */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-          <AnimatePresence mode="sync">
-            <motion.div
-              key={currentSlide}
-              initial={{ opacity: 0, scale: 1.0 }}
-              animate={{ opacity: 1, scale: 1.07 }}
-              exit={{ opacity: 0, scale: 1.1 }}
-              transition={{
-                opacity: { duration: 1.8, ease: 'easeInOut' },
-                scale: { duration: isHeroHovered ? 12 : 7, ease: [0.25, 1, 0.5, 1] },
-              }}
-              className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url(${heroDestinations[currentSlide].image})`,
-                filter: 'blur(1.5px)', // 10-20% subtle blur, keeping monuments crisp and recognizable
-              }}
-            />
-          </AnimatePresence>
+        {/* Full-Screen Video Background */}
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            poster="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=2400&q=85"
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
 
-          {/* 20-35% Dark Transparent Overlay & Blue-Black Color Grading */}
-          <div className="absolute inset-0 bg-black-deep/30" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black-deep/65 via-navy-950/25 to-black-deep/85" />
+          {/* Subtle Dark / Transparent Overlay & Blue-Black Color Grading for Maximum Readability */}
+          <div className="absolute inset-0 bg-black-deep/45 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black-deep/75 via-navy-950/40 to-black-deep/90 pointer-events-none" />
           
           {/* Gentle Vignette Around Edges */}
           <div

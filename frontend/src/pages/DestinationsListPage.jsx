@@ -94,7 +94,7 @@ const DestinationsListPage = () => {
       setLoading(true);
       try {
         const params = {
-          limit: 30,
+          limit: 1000,
           search: search.trim() || undefined,
           category: selectedCategory !== 'All' ? selectedCategory : undefined,
           state: selectedState !== 'All' ? selectedState : undefined,
@@ -270,7 +270,7 @@ const DestinationsListPage = () => {
         <div className="flex items-center justify-between">
           <p className="text-xs text-slate-400">
             Showing <span className="font-bold text-white">{destinations.length}</span> of{' '}
-            <span className="font-bold text-white">{totalCount}</span> verified travel destinations
+            <span className="font-bold text-white">{totalCount}</span> verified travel destinations across India
           </p>
         </div>
 

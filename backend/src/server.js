@@ -148,8 +148,8 @@ const startServer = async () => {
 
     // Auto-seed if database is fresh or has incomplete dataset
     const destCount = await Destination.countDocuments();
-    if (destCount < 80) {
-      console.log(`[Server] Database has ${destCount} destinations (target >= 80). Running full seed initialization...`);
+    if (destCount < 350) {
+      console.log(`[Server] Database has ${destCount} destinations (target >= 350). Running full seed initialization...`);
       await seedData();
     }
 
