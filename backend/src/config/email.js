@@ -1,80 +1,61 @@
-const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
-
-/**
- * Build nodemailer transporter
- * Priority: Gmail App Password > Custom SMTP > Console-only fallback
- */
-const getTransporter = async () => {
-  const smtpUser = process.env.SMTP_USER?.trim();
-  const smtpPass = process.env.SMTP_PASS?.trim();
-  const smtpService = process.env.SMTP_SERVICE?.trim()?.toLowerCase();
-  const smtpHost = process.env.SMTP_HOST?.trim();
-  const smtpPort = Number(process.env.SMTP_PORT) || 587;
-
-  // ─── 1. Gmail via App Password ─────────────────────────────────────────────
-  if (smtpUser && smtpPass && (smtpService === 'gmail' || smtpUser.endsWith('@gmail.com'))) {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: smtpUser, pass: smtpPass },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 15000,
-    });
-
-    try {
-      await transporter.verify();
-      console.log('[Email] Gmail SMTP ready.');
-      return transporter;
-    } catch (err) {
-      console.error('[Email] Gmail SMTP verification failed.', {
-        name: err.name,
-        code: err.code || null,
-        responseCode: err.responseCode || null,
-      });
-      // Return transporter anyway; Gmail SMTP sendMail will attempt connection with full retry
-      return transporter;
-    }
+const getSafeProviderMessage = (message, secrets = []) => {
+  let safeMessage = String(message || '').slice(0, 500);
+  for (const secret of secrets) {
+    if (secret) safeMessage = safeMessage.split(String(secret)).join('[REDACTED]');
   }
-
-  // ─── 2. Custom SMTP host ────────────────────────────────────────────────────
-  if (smtpUser && smtpPass && smtpHost) {
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: { user: smtpUser, pass: smtpPass },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 15000,
-    });
-
-    try {
-      await transporter.verify();
-      console.log(`[Email] ✅ Custom SMTP ready — host: ${smtpHost}:${smtpPort}`);
-      return transporter;
-    } catch (err) {
-      console.error('[Email] Custom SMTP verification failed.', {
-        name: err.name,
-        code: err.code || null,
-        responseCode: err.responseCode || null,
-      });
-      return transporter;
-    }
-  }
-
-  // ─── 3. No SMTP configured ─────────────────────────────────────────────────
-  console.warn('[Email] No SMTP credentials configured.');
-  return null;
+  return safeMessage.replace(/\b\d{6}\b/g, '[REDACTED]');
 };
 
-// Singleton transporter (initialised once, reused)
-let _transporter = null;
+const sendBrevoEmail = async ({ to, subject, html, text, privateValues = [] }) => {
+  const apiKey = process.env.BREVO_API_KEY?.trim();
+  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim();
+  const senderName = process.env.BREVO_SENDER_NAME?.trim() || 'YatraLok';
 
-const initTransporter = async () => {
-  if (_transporter) return _transporter;
-  _transporter = await getTransporter();
-  return _transporter;
+  if (!apiKey || !senderEmail) {
+    console.error('[Brevo Email] Configuration missing.', {
+      apiKeyConfigured: Boolean(apiKey),
+      senderConfigured: Boolean(senderEmail),
+    });
+    throw new Error('Brevo email configuration is incomplete.');
+  }
+
+  let response;
+  try {
+    response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { email: senderEmail, name: senderName },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: text,
+      }),
+    });
+  } catch (error) {
+    console.error('[Brevo Email] Request failed before receiving a response.', {
+      name: error.name,
+      code: error.code || null,
+    });
+    throw new Error('Brevo email request failed.');
+  }
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.messageId) {
+    console.error('[Brevo Email] Provider rejected delivery.', {
+      statusCode: response.status,
+      code: result?.code || null,
+      message: getSafeProviderMessage(result?.message, [apiKey, to, ...privateValues]),
+    });
+    throw new Error('Brevo rejected the email request.');
+  }
+
+  console.info('[Brevo Email] Provider accepted delivery.', { statusCode: response.status });
+  return { id: result.messageId };
 };
 
 /**
@@ -145,110 +126,12 @@ const sendOTPEmail = async (to, otp, purpose = 'signup') => {
     purpose === 'signup'
       ? '🗺️ Yatra Lok — Verify Your Tourist Account'
       : '🔑 Yatra Lok — Password Reset OTP';
-  const smtpUser = process.env.SMTP_USER?.trim();
-  const smtpPass = process.env.SMTP_PASS?.trim();
-  const smtpService = process.env.SMTP_SERVICE?.trim()?.toLowerCase();
-  const smtpHost = process.env.SMTP_HOST?.trim();
-  const smtpConfigured = Boolean(
-    smtpUser &&
-      smtpPass &&
-      (smtpService === 'gmail' || smtpUser.endsWith('@gmail.com') || smtpHost)
-  );
-  const resendApiKey = process.env.RESEND_API_KEY?.trim();
-  const resendFrom = process.env.RESEND_FROM?.trim() || process.env.EMAIL_FROM?.trim();
-
-  console.info('[OTP Email] Provider configuration:', {
-    smtpConfigured,
-    resendConfigured: Boolean(resendApiKey),
-    resendSenderConfigured: Boolean(resendFrom),
+  await sendBrevoEmail({
+    to,
+    subject,
+    html: buildOtpHtml(otp, purpose),
+    privateValues: [otp],
   });
-
-  // ─── 1. Primary: Direct Gmail SMTP (delivers straight to Gmail inbox) ───────
-  let smtpError = null;
-  try {
-    const transporter = await initTransporter();
-    if (transporter) {
-      const fromAddress =
-        process.env.EMAIL_FROM || `"Yatra Lok" <${process.env.SMTP_USER}>`;
-
-      const info = await transporter.sendMail({
-        from: fromAddress,
-        to,
-        subject,
-        html: buildOtpHtml(otp, purpose),
-      });
-
-      const accepted = (info.accepted || []).some(
-        (recipient) => String(recipient).toLowerCase() === to.toLowerCase()
-      );
-
-      if (accepted) {
-        console.info('[OTP Email] SMTP accepted recipient.', {
-          acceptedCount: info.accepted.length,
-          rejectedCount: (info.rejected || []).length,
-        });
-        return true;
-      }
-
-      smtpError = new Error('SMTP did not accept the recipient.');
-      console.warn('[OTP Email] SMTP did not accept recipient.', {
-        acceptedCount: (info.accepted || []).length,
-        rejectedCount: (info.rejected || []).length,
-        responseCode: info.responseCode || null,
-      });
-    }
-  } catch (error) {
-    smtpError = error;
-    console.warn('[OTP Email] SMTP request failed.', {
-      name: error.name,
-      code: error.code || null,
-      responseCode: error.responseCode || null,
-    });
-  }
-
-  // ─── 2. Fallback: Resend API ───────────────────────────────────────────────
-  if (!resendApiKey) {
-    console.error('[OTP Email] No OTP email provider is configured.');
-    throw new Error(
-      smtpError
-        ? 'OTP email delivery failed because no fallback provider is configured.'
-        : 'OTP email delivery is not configured on the server.'
-    );
-  }
-
-  if (!resendFrom) {
-    console.error('[OTP Email] Resend sender is not configured.');
-    throw new Error('OTP email sender is not configured on the server.');
-  }
-
-  const resend = new Resend(resendApiKey);
-  let result;
-  try {
-    result = await resend.emails.send({
-      from: resendFrom,
-      to,
-      subject,
-      html: buildOtpHtml(otp, purpose),
-    });
-  } catch (error) {
-    console.error('[OTP Email] Resend request failed.', {
-      name: error.name,
-      statusCode: error.statusCode || null,
-      message: getSafeProviderMessage(error.message, [resendApiKey, otp, to]),
-    });
-    throw new Error('OTP email provider request failed.');
-  }
-
-  if (result?.error) {
-    console.error('[OTP Email] Resend rejected delivery.', {
-      name: result.error.name || 'ResendError',
-      statusCode: result.error.statusCode || null,
-      message: getSafeProviderMessage(result.error.message, [resendApiKey, otp, to]),
-    });
-    throw new Error('OTP email provider rejected delivery.');
-  }
-
-  console.info('[OTP Email] Resend accepted delivery request.');
   return true;
 };
 
@@ -260,26 +143,7 @@ const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (character)
   "'": '&#39;',
 }[character]));
 
-const getSafeProviderMessage = (message, secrets = []) => {
-  let safeMessage = String(message || '').slice(0, 500);
-  for (const secret of secrets) {
-    if (secret) safeMessage = safeMessage.split(String(secret)).join('[REDACTED]');
-  }
-  return safeMessage.replace(/\b\d{6}\b/g, '[REDACTED]');
-};
-
 const sendJourneyEmail = async (to, trip, recipientName) => {
-  const resendApiKey = process.env.RESEND_API_KEY?.trim();
-  const resendFrom = process.env.RESEND_FROM?.trim() || process.env.EMAIL_FROM?.trim();
-  const smtpUser = process.env.SMTP_USER?.trim();
-  const smtpPass = process.env.SMTP_PASS?.trim();
-  const smtpService = process.env.SMTP_SERVICE?.trim()?.toLowerCase();
-  const smtpHost = process.env.SMTP_HOST?.trim();
-  const smtpConfigured = Boolean(
-    smtpUser &&
-      smtpPass &&
-      (smtpService === 'gmail' || smtpUser.endsWith('@gmail.com') || smtpHost)
-  );
   const dateLabel = (value) => value
     ? new Date(value).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
     : 'Not scheduled';
@@ -324,101 +188,8 @@ const sendJourneyEmail = async (to, trip, recipientName) => {
   const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"></head><body style="margin:0;background:#050d18;color:#e6edf5;font-family:Arial,Helvetica,sans-serif"><div style="display:none;max-height:0;overflow:hidden;opacity:0">Your ${escapeHtml(trip.title || 'YatraLok')} itinerary is ready.</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050d18;padding:28px 12px"><tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;background:#091526;border:1px solid #1e3550;border-radius:18px;overflow:hidden"><tr><td style="padding:28px 28px 24px;background:linear-gradient(135deg,#102846,#0a1728);border-bottom:1px solid #28445f"><p style="margin:0;color:#8bc9ef;font-size:12px;font-weight:700;letter-spacing:2px">YATRALOK <span style="color:#e5bc7a">· JOURNEY PLANNER</span></p><h1 style="margin:16px 0 6px;color:#f7fafc;font-size:28px;line-height:1.2">${safeTitle}</h1><p style="margin:0;color:#afc0d1;font-size:14px">Prepared for ${safeName} (${escapeHtml(to)})</p></td></tr><tr><td style="padding:24px 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0d1d32;border:1px solid #203955;border-radius:12px"><tr><td style="padding:18px 20px"><p style="margin:0 0 8px;color:#8bbfe8;font-size:12px;text-transform:uppercase;letter-spacing:1px">Journey overview</p><p style="margin:0 0 7px;color:#d8e2ed;font-size:14px"><strong style="color:#f4f8fc">Dates:</strong> ${safeStart} – ${safeEnd} · ${totalDays} day(s)</p><p style="margin:0 0 7px;color:#d8e2ed;font-size:14px"><strong style="color:#f4f8fc">Starting point:</strong> ${safeOrigin}</p><p style="margin:0 0 7px;color:#d8e2ed;font-size:14px"><strong style="color:#f4f8fc">Travel style:</strong> ${safeStyle} · <strong style="color:#f4f8fc">Travelers:</strong> ${Number(trip.travelerCount || 1)}</p>${trip.description ? `<p style="margin:0;color:#d8e2ed;font-size:14px"><strong style="color:#f4f8fc">Trip notes:</strong> ${escapeHtml(trip.description)}</p>` : ''}</td></tr></table><h2 style="margin:28px 0 14px;color:#f4f8fc;font-size:18px">Your itinerary <span style="color:#91a8bf;font-size:14px;font-weight:400">· ${stops.length} destination(s)</span></h2><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${stops.map((stop) => stop.html).join('')}</table><p style="margin:14px 0 0;padding:14px 16px;background:#10233a;border-left:3px solid #d7ad70;border-radius:8px;color:#b9c8d7;font-size:12px;line-height:1.6">Crowd details are YatraLok platform estimates, not verified real-world headcounts. Weather, road conditions and transit-time information may not be available; confirm local conditions before departure.</p></td></tr><tr><td style="padding:18px 28px;border-top:1px solid #1e3550;color:#7f94aa;font-size:12px;line-height:1.6">This journey plan was requested from your YatraLok account for ${escapeHtml(to)}.<br>Travel thoughtfully. Explore safely.</td></tr></table></td></tr></table></body></html>`;
   const text = `${trip.title || 'Your YatraLok journey'}\nPrepared for ${recipientName || 'Traveler'} (${to})\n\nJourney overview\nDates: ${dateLabel(trip.startDate)} – ${dateLabel(trip.endDate)} (${totalDays} days)\nStarting point: ${trip.startingLocation || 'Not specified'}\nTravel style: ${trip.tripType || 'solo'} · Travelers: ${Number(trip.travelerCount || 1)}\n${trip.description ? `Trip notes: ${trip.description}\n` : ''}\n${stops.map((stop) => stop.text).join('\n\n')}\n\nCrowd details are YatraLok platform estimates, not verified real-world headcounts. Confirm local weather, road and transit information before departure.`;
 
-  console.info('[Journey Email] Delivery configuration:', {
-    smtpConfigured,
-    resendConfigured: Boolean(resendApiKey),
-    senderConfigured: Boolean(resendFrom),
-    waypointCount: stops.length,
-  });
-
-  // ─── 1. Primary: Direct Gmail SMTP ──────────────────────────────────────────
-  let smtpError = null;
-  try {
-    const transporter = await initTransporter();
-    if (transporter) {
-      const fromAddress =
-        process.env.EMAIL_FROM || `"Yatra Lok" <${process.env.SMTP_USER}>`;
-
-      const info = await transporter.sendMail({
-        from: fromAddress,
-        to,
-        subject,
-        text,
-        html,
-      });
-
-      const accepted = (info.accepted || []).some(
-        (recipient) => String(recipient).toLowerCase() === to.toLowerCase()
-      );
-      if (accepted) {
-        console.info('[Journey Email] SMTP accepted recipient.', {
-          acceptedCount: info.accepted.length,
-          rejectedCount: (info.rejected || []).length,
-        });
-        return { id: info.messageId, deliveredTo: to };
-      }
-
-      smtpError = new Error('SMTP did not accept the recipient.');
-      console.warn('[Journey Email] SMTP did not accept recipient.', {
-        acceptedCount: (info.accepted || []).length,
-        rejectedCount: (info.rejected || []).length,
-        responseCode: info.responseCode || null,
-      });
-    }
-  } catch (error) {
-    smtpError = error;
-    console.warn('[Journey Email] SMTP request failed.', {
-      name: error.name,
-      code: error.code || null,
-      responseCode: error.responseCode || null,
-    });
-  }
-
-  // ─── 2. Fallback: Resend API ───────────────────────────────────────────────
-  if (!resendApiKey) {
-    console.error('[Journey Email] No email provider is configured.');
-    throw new Error(
-      smtpError
-        ? 'Itinerary email delivery failed because no fallback provider is configured.'
-        : 'Itinerary email delivery is not configured on the server.'
-    );
-  }
-
-  if (!resendFrom) {
-    console.error('[Journey Email] Resend sender is not configured.');
-    throw new Error('Itinerary email sender is not configured on the server.');
-  }
-
-  const resend = new Resend(resendApiKey);
-  let result;
-  try {
-    result = await resend.emails.send({
-      from: resendFrom,
-      to,
-      subject,
-      text,
-      html,
-    });
-  } catch (error) {
-    console.error('[Journey Email] Resend request failed.', {
-      name: error.name,
-      statusCode: error.statusCode || null,
-      message: getSafeProviderMessage(error.message, [resendApiKey, to]),
-    });
-    throw new Error('Itinerary email provider request failed.');
-  }
-
-  if (result?.error || !result?.data?.id) {
-    console.error('[Journey Email] Resend rejected delivery.', {
-      name: result?.error?.name || 'ResendError',
-      statusCode: result?.error?.statusCode || null,
-      message: getSafeProviderMessage(result?.error?.message, [resendApiKey, to]),
-    });
-    throw new Error('Itinerary email provider rejected delivery.');
-  }
-
-  console.info('[Journey Email] Resend accepted delivery request.');
-  return { id: result.data.id, deliveredTo: to };
+  const result = await sendBrevoEmail({ to, subject, text, html });
+  return { id: result.id, deliveredTo: to };
 };
 
 module.exports = { sendOTPEmail, sendJourneyEmail };
