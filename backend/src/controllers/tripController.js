@@ -247,9 +247,7 @@ const emailTripItinerary = async (req, res) => {
       await trip.save();
       return res.status(200).json({
         success: true,
-        message: result?.sandboxNotice
-          ? `Journey plan emailed! Delivered to ${result.deliveredTo} (Resend sandbox mode)`
-          : 'Journey itinerary emailed successfully.',
+        message: 'Journey itinerary emailed successfully.',
         data: {
           email: req.user.email,
           deliveredTo: result?.deliveredTo || req.user.email,
