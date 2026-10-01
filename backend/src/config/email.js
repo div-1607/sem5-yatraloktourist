@@ -24,10 +24,14 @@ const getTransporter = async () => {
 
     try {
       await transporter.verify();
-      console.log(`[Email] ✅ Gmail SMTP ready — sending from: ${smtpUser}`);
+      console.log('[Email] Gmail SMTP ready.');
       return transporter;
     } catch (err) {
-      console.error(`[Email] ⚠️ Gmail SMTP verify initial check: ${err.message}. Transporter will still attempt send.`);
+      console.error('[Email] Gmail SMTP verification failed.', {
+        name: err.name,
+        code: err.code || null,
+        responseCode: err.responseCode || null,
+      });
       // Return transporter anyway; Gmail SMTP sendMail will attempt connection with full retry
       return transporter;
     }
@@ -50,13 +54,17 @@ const getTransporter = async () => {
       console.log(`[Email] ✅ Custom SMTP ready — host: ${smtpHost}:${smtpPort}`);
       return transporter;
     } catch (err) {
-      console.error(`[Email] ⚠️ Custom SMTP verification: ${err.message}`);
+      console.error('[Email] Custom SMTP verification failed.', {
+        name: err.name,
+        code: err.code || null,
+        responseCode: err.responseCode || null,
+      });
       return transporter;
     }
   }
 
   // ─── 3. No SMTP configured ─────────────────────────────────────────────────
-  console.warn('[Email] ⚠️  No SMTP credentials configured. OTPs will be printed to server console only.');
+  console.warn('[Email] No SMTP credentials configured.');
   return null;
 };
 
@@ -130,80 +138,115 @@ const buildOtpHtml = (otp, purpose) => `
  * @param {string} otp       - 6-digit OTP code
  * @param {string} purpose   - 'signup' | 'forgot-password'
  * @returns {Promise<boolean>}
+ * @throws {Error} when no provider accepts the OTP email
  */
 const sendOTPEmail = async (to, otp, purpose = 'signup') => {
   const subject =
     purpose === 'signup'
       ? '🗺️ Yatra Lok — Verify Your Tourist Account'
       : '🔑 Yatra Lok — Password Reset OTP';
+  const smtpUser = process.env.SMTP_USER?.trim();
+  const smtpPass = process.env.SMTP_PASS?.trim();
+  const smtpService = process.env.SMTP_SERVICE?.trim()?.toLowerCase();
+  const smtpHost = process.env.SMTP_HOST?.trim();
+  const smtpConfigured = Boolean(
+    smtpUser &&
+      smtpPass &&
+      (smtpService === 'gmail' || smtpUser.endsWith('@gmail.com') || smtpHost)
+  );
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  const resendFrom = process.env.RESEND_FROM?.trim() || process.env.EMAIL_FROM?.trim();
 
-  // Always log prominently to console for instant developer & tester access
-  console.log(`\n${'='.repeat(56)}`);
-  console.log(`📧 [EMAIL SERVICE]  OTP for: ${to}`);
-  console.log(`   Purpose : ${purpose}`);
-  console.log(`   OTP Code: >>> ${otp} <<<  (valid 10 min)`);
-  console.log(`${'='.repeat(56)}\n`);
+  console.info('[OTP Email] Provider configuration:', {
+    smtpConfigured,
+    resendConfigured: Boolean(resendApiKey),
+    resendSenderConfigured: Boolean(resendFrom),
+  });
 
   // ─── 1. Primary: Direct Gmail SMTP (delivers straight to Gmail inbox) ───────
+  let smtpError = null;
   try {
     const transporter = await initTransporter();
     if (transporter) {
       const fromAddress =
         process.env.EMAIL_FROM || `"Yatra Lok" <${process.env.SMTP_USER}>`;
 
-      // Always deliver to the signup email address; if different from owner email, also deliver copy to owner
-      const isOwner = to.toLowerCase() === 'div160706@gmail.com';
-      const recipientList = isOwner ? to : [to, 'div160706@gmail.com'];
-
       const info = await transporter.sendMail({
         from: fromAddress,
-        to: recipientList,
+        to,
         subject,
         html: buildOtpHtml(otp, purpose),
       });
 
-      console.log(`[Email] ✅ Real OTP email delivered via Gmail SMTP to: ${Array.isArray(recipientList) ? recipientList.join(', ') : recipientList} (MessageId: ${info.messageId})`);
-      return true;
+      const accepted = (info.accepted || []).some(
+        (recipient) => String(recipient).toLowerCase() === to.toLowerCase()
+      );
+
+      if (accepted) {
+        console.info('[OTP Email] SMTP accepted recipient.', {
+          acceptedCount: info.accepted.length,
+          rejectedCount: (info.rejected || []).length,
+        });
+        return true;
+      }
+
+      smtpError = new Error('SMTP did not accept the recipient.');
+      console.warn('[OTP Email] SMTP did not accept recipient.', {
+        acceptedCount: (info.accepted || []).length,
+        rejectedCount: (info.rejected || []).length,
+        responseCode: info.responseCode || null,
+      });
     }
-  } catch (smtpErr) {
-    console.warn(`[Email] ⚠️ Gmail SMTP send note: ${smtpErr.message}. Trying Resend fallback...`);
+  } catch (error) {
+    smtpError = error;
+    console.warn('[OTP Email] SMTP request failed.', {
+      name: error.name,
+      code: error.code || null,
+      responseCode: error.responseCode || null,
+    });
   }
 
   // ─── 2. Fallback: Resend API ───────────────────────────────────────────────
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (apiKey) {
-    try {
-      const resend = new Resend(apiKey);
-      const isOwner = to.toLowerCase() === 'div160706@gmail.com';
-      const targetEmail = isOwner ? to : 'div160706@gmail.com';
-      const otpSubject = isOwner ? subject : `[Tourist: ${to}] ${subject}`;
-
-      let otpHtml = buildOtpHtml(otp, purpose);
-      if (!isOwner) {
-        const devNote = `<div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 14px;border-radius:10px;margin-bottom:18px;font-size:13px;text-align:center;">
-          <strong>Tourist Registration Code for:</strong> ${escapeHtml(to)}
-        </div>`;
-        otpHtml = otpHtml.replace('<!-- Body -->', `<!-- Body -->${devNote}`);
-      }
-
-      const res = await resend.emails.send({
-        from: 'YatraLok <onboarding@resend.dev>',
-        to: targetEmail,
-        subject: otpSubject,
-        html: otpHtml,
-      });
-
-      if (res?.error) {
-        console.error('[Email] ❌ Resend OTP error:', res.error.message || res.error);
-      } else {
-        console.log(`[Email] ✅ OTP email dispatched via Resend to Gmail (${targetEmail})! MessageId: ${res?.data?.id}`);
-        return true;
-      }
-    } catch (resendErr) {
-      console.error(`[Email] Resend dispatch exception: ${resendErr.message}`);
-    }
+  if (!resendApiKey) {
+    console.error('[OTP Email] No OTP email provider is configured.');
+    throw new Error(
+      smtpError
+        ? 'OTP email delivery failed because no fallback provider is configured.'
+        : 'OTP email delivery is not configured on the server.'
+    );
   }
 
+  if (!resendFrom) {
+    console.error('[OTP Email] Resend sender is not configured.');
+    throw new Error('OTP email sender is not configured on the server.');
+  }
+
+  const resend = new Resend(resendApiKey);
+  let result;
+  try {
+    result = await resend.emails.send({
+      from: resendFrom,
+      to,
+      subject,
+      html: buildOtpHtml(otp, purpose),
+    });
+  } catch (error) {
+    console.error('[OTP Email] Resend request failed.', {
+      name: error.name,
+      statusCode: error.statusCode || null,
+    });
+    throw new Error('OTP email provider request failed.');
+  }
+
+  if (result?.error) {
+    console.error('[OTP Email] Resend rejected delivery.', {
+      name: result.error.name || 'ResendError',
+      statusCode: result.error.statusCode || null,
+    });
+    throw new Error('OTP email provider rejected delivery.');
+  }
+
+  console.info('[OTP Email] Resend accepted delivery request.');
   return true;
 };
 
@@ -216,7 +259,17 @@ const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (character)
 }[character]));
 
 const sendJourneyEmail = async (to, trip, recipientName) => {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  const resendFrom = process.env.RESEND_FROM?.trim() || process.env.EMAIL_FROM?.trim();
+  const smtpUser = process.env.SMTP_USER?.trim();
+  const smtpPass = process.env.SMTP_PASS?.trim();
+  const smtpService = process.env.SMTP_SERVICE?.trim()?.toLowerCase();
+  const smtpHost = process.env.SMTP_HOST?.trim();
+  const smtpConfigured = Boolean(
+    smtpUser &&
+      smtpPass &&
+      (smtpService === 'gmail' || smtpUser.endsWith('@gmail.com') || smtpHost)
+  );
   const dateLabel = (value) => value
     ? new Date(value).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
     : 'Not scheduled';
@@ -261,113 +314,99 @@ const sendJourneyEmail = async (to, trip, recipientName) => {
   const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"></head><body style="margin:0;background:#050d18;color:#e6edf5;font-family:Arial,Helvetica,sans-serif"><div style="display:none;max-height:0;overflow:hidden;opacity:0">Your ${escapeHtml(trip.title || 'YatraLok')} itinerary is ready.</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050d18;padding:28px 12px"><tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;background:#091526;border:1px solid #1e3550;border-radius:18px;overflow:hidden"><tr><td style="padding:28px 28px 24px;background:linear-gradient(135deg,#102846,#0a1728);border-bottom:1px solid #28445f"><p style="margin:0;color:#8bc9ef;font-size:12px;font-weight:700;letter-spacing:2px">YATRALOK <span style="color:#e5bc7a">· JOURNEY PLANNER</span></p><h1 style="margin:16px 0 6px;color:#f7fafc;font-size:28px;line-height:1.2">${safeTitle}</h1><p style="margin:0;color:#afc0d1;font-size:14px">Prepared for ${safeName} (${escapeHtml(to)})</p></td></tr><tr><td style="padding:24px 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0d1d32;border:1px solid #203955;border-radius:12px"><tr><td style="padding:18px 20px"><p style="margin:0 0 8px;color:#8bbfe8;font-size:12px;text-transform:uppercase;letter-spacing:1px">Journey overview</p><p style="margin:0 0 7px;color:#d8e2ed;font-size:14px"><strong style="color:#f4f8fc">Dates:</strong> ${safeStart} – ${safeEnd} · ${totalDays} day(s)</p><p style="margin:0 0 7px;color:#d8e2ed;font-size:14px"><strong style="color:#f4f8fc">Starting point:</strong> ${safeOrigin}</p><p style="margin:0 0 7px;color:#d8e2ed;font-size:14px"><strong style="color:#f4f8fc">Travel style:</strong> ${safeStyle} · <strong style="color:#f4f8fc">Travelers:</strong> ${Number(trip.travelerCount || 1)}</p>${trip.description ? `<p style="margin:0;color:#d8e2ed;font-size:14px"><strong style="color:#f4f8fc">Trip notes:</strong> ${escapeHtml(trip.description)}</p>` : ''}</td></tr></table><h2 style="margin:28px 0 14px;color:#f4f8fc;font-size:18px">Your itinerary <span style="color:#91a8bf;font-size:14px;font-weight:400">· ${stops.length} destination(s)</span></h2><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${stops.map((stop) => stop.html).join('')}</table><p style="margin:14px 0 0;padding:14px 16px;background:#10233a;border-left:3px solid #d7ad70;border-radius:8px;color:#b9c8d7;font-size:12px;line-height:1.6">Crowd details are YatraLok platform estimates, not verified real-world headcounts. Weather, road conditions and transit-time information may not be available; confirm local conditions before departure.</p></td></tr><tr><td style="padding:18px 28px;border-top:1px solid #1e3550;color:#7f94aa;font-size:12px;line-height:1.6">This journey plan was requested from your YatraLok account for ${escapeHtml(to)}.<br>Travel thoughtfully. Explore safely.</td></tr></table></td></tr></table></body></html>`;
   const text = `${trip.title || 'Your YatraLok journey'}\nPrepared for ${recipientName || 'Traveler'} (${to})\n\nJourney overview\nDates: ${dateLabel(trip.startDate)} – ${dateLabel(trip.endDate)} (${totalDays} days)\nStarting point: ${trip.startingLocation || 'Not specified'}\nTravel style: ${trip.tripType || 'solo'} · Travelers: ${Number(trip.travelerCount || 1)}\n${trip.description ? `Trip notes: ${trip.description}\n` : ''}\n${stops.map((stop) => stop.text).join('\n\n')}\n\nCrowd details are YatraLok platform estimates, not verified real-world headcounts. Confirm local weather, road and transit information before departure.`;
 
-  console.log(`\n========================================================`);
-  console.log(`🗺️ [JOURNEY PLAN EMAIL DISPATCH]`);
-  console.log(`   Recipient: ${to} (${recipientName})`);
-  console.log(`   Trip Title: ${trip.title}`);
-  console.log(`   Waypoints: ${stops.length} stop(s)`);
-  console.log(`========================================================\n`);
+  console.info('[Journey Email] Delivery configuration:', {
+    smtpConfigured,
+    resendConfigured: Boolean(resendApiKey),
+    senderConfigured: Boolean(resendFrom),
+    waypointCount: stops.length,
+  });
 
   // ─── 1. Primary: Direct Gmail SMTP ──────────────────────────────────────────
+  let smtpError = null;
   try {
     const transporter = await initTransporter();
     if (transporter) {
       const fromAddress =
         process.env.EMAIL_FROM || `"Yatra Lok" <${process.env.SMTP_USER}>`;
-      const isOwner = to.toLowerCase() === 'div160706@gmail.com';
-      const recipientList = isOwner ? to : [to, 'div160706@gmail.com'];
 
       const info = await transporter.sendMail({
         from: fromAddress,
-        to: recipientList,
+        to,
         subject,
         text,
         html,
       });
 
-      console.log(`[Email] ✅ Journey itinerary sent via Gmail SMTP to: ${Array.isArray(recipientList) ? recipientList.join(', ') : recipientList} (MessageId: ${info.messageId})`);
-      return { id: info.messageId, deliveredTo: to };
+      const accepted = (info.accepted || []).some(
+        (recipient) => String(recipient).toLowerCase() === to.toLowerCase()
+      );
+      if (accepted) {
+        console.info('[Journey Email] SMTP accepted recipient.', {
+          acceptedCount: info.accepted.length,
+          rejectedCount: (info.rejected || []).length,
+        });
+        return { id: info.messageId, deliveredTo: to };
+      }
+
+      smtpError = new Error('SMTP did not accept the recipient.');
+      console.warn('[Journey Email] SMTP did not accept recipient.', {
+        acceptedCount: (info.accepted || []).length,
+        rejectedCount: (info.rejected || []).length,
+        responseCode: info.responseCode || null,
+      });
     }
-  } catch (smtpErr) {
-    console.warn(`[Email] ⚠️ SMTP Journey send note: ${smtpErr.message}. Trying Resend fallback...`);
+  } catch (error) {
+    smtpError = error;
+    console.warn('[Journey Email] SMTP request failed.', {
+      name: error.name,
+      code: error.code || null,
+      responseCode: error.responseCode || null,
+    });
   }
 
   // ─── 2. Fallback: Resend API ───────────────────────────────────────────────
-  if (!apiKey) {
-    console.warn('[Email] RESEND_API_KEY missing - itinerary logged to console only.');
-    return {
-      id: `dev-${Date.now()}`,
-      deliveredTo: to,
-      loggedOnly: true,
-    };
+  if (!resendApiKey) {
+    console.error('[Journey Email] No email provider is configured.');
+    throw new Error(
+      smtpError
+        ? 'Itinerary email delivery failed because no fallback provider is configured.'
+        : 'Itinerary email delivery is not configured on the server.'
+    );
   }
 
-  const resend = new Resend(apiKey);
-  let res = null;
+  if (!resendFrom) {
+    console.error('[Journey Email] Resend sender is not configured.');
+    throw new Error('Itinerary email sender is not configured on the server.');
+  }
 
+  const resend = new Resend(resendApiKey);
+  let result;
   try {
-    res = await resend.emails.send({
-      from: 'YatraLok <onboarding@resend.dev>',
+    result = await resend.emails.send({
+      from: resendFrom,
       to,
       subject,
       text,
       html,
     });
-  } catch (err) {
-    res = { error: err };
+  } catch (error) {
+    console.error('[Journey Email] Resend request failed.', {
+      name: error.name,
+      statusCode: error.statusCode || null,
+    });
+    throw new Error('Itinerary email provider request failed.');
   }
 
-  // Handle Resend test tier restriction: free accounts can only send to account owner
-  if (res?.error) {
-    const errorMsg = res.error.message || '';
-    const isSandboxRestriction =
-      res.error.statusCode === 403 ||
-      errorMsg.includes('testing emails to your own email address') ||
-      errorMsg.includes('validation_error');
-
-    if (isSandboxRestriction) {
-      const sandboxOwner = process.env.SMTP_USER || 'div160706@gmail.com';
-      console.log(`[Email] ℹ️ Resend sandbox tier: forwarding itinerary for ${to} to owner ${sandboxOwner}`);
-
-      const bannerHtml = `<div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:12px 16px;border-radius:10px;margin-bottom:20px;font-size:13px;line-height:1.5;">
-        <strong>⚠️ Sandbox Development Notice:</strong><br/>
-        This itinerary was prepared for tourist account: <strong>${escapeHtml(to)}</strong> (${safeName}).<br/>
-        Because the Resend API is in sandbox mode, it was delivered to the registered developer address: <strong>${sandboxOwner}</strong>.
-      </div>`;
-
-      try {
-        const retryRes = await resend.emails.send({
-          from: 'YatraLok <onboarding@resend.dev>',
-          to: sandboxOwner,
-          subject: `[Tourist: ${to}] ${subject}`,
-          text: `[Delivered to sandbox owner for tourist: ${to}]\n\n${text}`,
-          html: html.replace('<body>', `<body>${bannerHtml}`),
-        });
-
-        if (retryRes?.data?.id) {
-          console.log(`[Email] ✅ Itinerary successfully delivered to developer test inbox: ${sandboxOwner}`);
-          return {
-            id: retryRes.data.id,
-            deliveredTo: sandboxOwner,
-            originalRecipient: to,
-            sandboxNotice: true,
-          };
-        }
-      } catch (retryErr) {
-        console.error('[Email] Sandbox fallback send failed:', retryErr.message);
-      }
-    }
-
-    console.warn(`[Email] Resend delivery notice (${errorMsg}). Stored itinerary is safe.`);
-    return {
-      id: `dev-${Date.now()}`,
-      deliveredTo: to,
-      fallbackNotice: true,
-    };
+  if (result?.error || !result?.data?.id) {
+    console.error('[Journey Email] Resend rejected delivery.', {
+      name: result?.error?.name || 'ResendError',
+      statusCode: result?.error?.statusCode || null,
+    });
+    throw new Error('Itinerary email provider rejected delivery.');
   }
 
-  console.log(`[Email] ✅ Journey itinerary sent directly to ${to} (MessageId: ${res.data?.id})`);
-  return { id: res.data?.id, deliveredTo: to };
+  console.info('[Journey Email] Resend accepted delivery request.');
+  return { id: result.data.id, deliveredTo: to };
 };
 
 module.exports = { sendOTPEmail, sendJourneyEmail };

@@ -8,7 +8,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  Sparkles,
   ShieldCheck,
   UserCheck,
   ArrowRight,
@@ -19,7 +18,7 @@ import toast from 'react-hot-toast';
 const LoginPage = () => {
   const location = useLocation();
   const isAdminLogin = location.pathname === '/admin/login';
-  const [activePortal, setActivePortal] = useState(isAdminLogin ? 'admin' : 'tourist');
+  const activePortal = isAdminLogin ? 'admin' : 'tourist';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,24 +27,6 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const from = location.state?.from?.pathname || '/dashboard';
-
-  const switchPortal = (portal) => {
-    if (isAdminLogin && portal !== 'admin') return;
-    if (!isAdminLogin && portal !== 'tourist') return;
-    setActivePortal(portal);
-    if (portal === 'admin') {
-      setEmail('admin@yatralok.com');
-      setPassword('Admin@123');
-    } else {
-      setEmail('rahul.verma@example.com');
-      setPassword('Tourist@123');
-    }
-  };
-
-  const handleQuickDemo = (type) => {
-    switchPortal(type);
-    toast.success(`Demo credentials loaded for ${type.toUpperCase()}`);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -143,7 +124,7 @@ const LoginPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={
                     activePortal === 'admin'
-                      ? 'admin@yatralok.com'
+                      ? 'div160706@gmail.com'
                       : 'tourist@example.com'
                   }
                   required
@@ -208,25 +189,6 @@ const LoginPage = () => {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Credentials Bar for Judges */}
-          <div className="mt-6 pt-5 border-t border-slate-200">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-yellow-warning" />
-                Hackathon Judge 1-Click Fill
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemo(isAdminLogin ? 'admin' : 'tourist')}
-                className="py-2.5 px-3 rounded-lg bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-800 transition-all flex items-center justify-center gap-1"
-              >
-                <span>{isAdminLogin ? 'Admin Demo' : 'Tourist Demo'}</span>
-              </button>
-            </div>
-          </div>
 
           {/* Registration link */}
           <div className="text-center mt-6">

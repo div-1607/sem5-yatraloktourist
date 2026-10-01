@@ -7,6 +7,7 @@ const { connectDB } = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const Destination = require('./models/Destination');
 const { seedData } = require('./utils/seeder');
+const { ensureAdminAccount } = require('./utils/adminAccount');
 
 // Route imports - Core
 const authRoutes = require('./routes/authRoutes');
@@ -153,6 +154,8 @@ const startServer = async () => {
     if (destCount < 350) {
       console.log(`[Server] Database has ${destCount} destinations (target >= 350). Running full seed initialization...`);
       await seedData();
+    } else {
+      await ensureAdminAccount();
     }
 
     // Seed initial Geofences & Hazard Zones if empty

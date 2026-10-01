@@ -6,6 +6,7 @@ const Review = require('../models/Review');
 const SOSRequest = require('../models/SOSRequest');
 const { connectDB, disconnectDB } = require('../config/db');
 const { CATEGORIES, CROWD_LEVELS } = require('../config/constants');
+const { ensureAdminAccount } = require('./adminAccount');
 const additionalDestinations = require('./additionalDestinations');
 const { hillStationDestinations } = require('./hillStationDestinations');
 require('dotenv').config();
@@ -3040,23 +3041,8 @@ const seedData = async () => {
     const insertedCategories = await Category.insertMany(sampleCategories);
     console.log(`[Seeder] Seeded ${insertedCategories.length} categories.`);
 
-    // 2. Seed Default Admin User
-    console.log('[Seeder] Seeding admin user (admin@yatralok.com)...');
-    const adminUser = await User.create({
-      name: 'Yatra Lok Administrator',
-      email: 'admin@yatralok.com',
-      password: 'Admin@123',
-      role: 'admin',
-      isVerified: true,
-      age: 32,
-      gender: 'Other',
-      mobile: '+91 99887 76655',
-      city: 'New Delhi',
-      address: 'Central Secretariat, New Delhi',
-      lastLogin: new Date(),
-      isOnline: true,
-      loginCount: 12,
-    });
+    // 2. Provision the administrator from backend environment configuration
+    await ensureAdminAccount();
 
     // 3. Seed Destinations
     console.log('[Seeder] Seeding destinations across Delhi, Ghaziabad, Aligarh, Meerut, Agra, Indore, Jaipur, Mumbai, Shimla, Manali, Mussoorie, Nainital, Rishikesh, Ooty, Darjeeling, Kashmir...');
@@ -3120,9 +3106,7 @@ const seedData = async () => {
 
     console.log('\n==================================================');
     console.log('✅ [YATRA LOK SEEDING COMPLETE]');
-    console.log('Admin Account:   admin@yatralok.com     | Password: Admin@123');
-    console.log('Tourist Account: rahul.verma@example.com| Password: Tourist@123');
-    console.log('Tourist Account: tourist@yatralok.com   | Password: Tourist@123');
+    console.log('[Seeder] Seed account passwords are not written to logs.');
     console.log(`Total Destinations Seeded: ${createdDestinations.length}`);
     console.log('==================================================\n');
   } catch (error) {
