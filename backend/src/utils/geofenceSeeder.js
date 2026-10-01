@@ -124,17 +124,21 @@ const initialHazards = [
 async function seedGeofencesAndHazards() {
   try {
     if (mongoose.connection.readyState !== 1) {
-      throw new Error(`MongoDB connection is not ready. State: ${mongoose.connection.readyState}`);
+      throw new Error(
+        `MongoDB connection is not ready. State: ${mongoose.connection.readyState}`
+      );
     }
 
     console.log('[Geofence Seeder] MongoDB connection ready');
 
-    const existingFences = await Geofence.countDocuments();
+    const existingFences = await Geofence.estimatedDocumentCount();
     console.log(`[Geofence Seeder] Existing geofences: ${existingFences}`);
 
     if (existingFences === 0) {
       await Geofence.insertMany(initialGeofences);
-      console.log(`[Geofence Seeder] Seeded ${initialGeofences.length} geofences.`);
+      console.log(
+        `[Geofence Seeder] Seeded ${initialGeofences.length} geofences.`
+      );
     }
 
     const existingHazards = await HighRiskZone.countDocuments();
@@ -142,7 +146,9 @@ async function seedGeofencesAndHazards() {
 
     if (existingHazards === 0) {
       await HighRiskZone.insertMany(initialHazards);
-      console.log(`[Hazard Seeder] Seeded ${initialHazards.length} high-risk zones.`);
+      console.log(
+        `[Hazard Seeder] Seeded ${initialHazards.length} high-risk zones.`
+      );
     }
   } catch (err) {
     console.error('[Geofence Seeder Error]:', err.message);
