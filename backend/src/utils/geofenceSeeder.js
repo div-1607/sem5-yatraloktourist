@@ -131,7 +131,7 @@ async function seedGeofencesAndHazards() {
 
     console.log('[Geofence Seeder] MongoDB connection ready');
 
-    const existingFences = await Geofence.estimatedDocumentCount();
+    const existingFences = 0;
     console.log(`[Geofence Seeder] Existing geofences: ${existingFences}`);
 
     if (existingFences === 0) {
