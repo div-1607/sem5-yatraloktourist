@@ -27,6 +27,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import CrowdBadge from '../components/CrowdBadge';
 import MapView from '../components/MapView';
+import CategorySpecificDetails from '../components/CategorySpecificDetails';
 import toast from 'react-hot-toast';
 
 const DestinationDetailsPage = () => {
@@ -269,6 +270,9 @@ const DestinationDetailsPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left 2 Cols: Description, Map, Reviews */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Category-Specific Insights (Exclusive to Details Page) */}
+            <CategorySpecificDetails destination={destination} />
+
             {/* Overview */}
             <div className="glass-card p-6 sm:p-8 space-y-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">

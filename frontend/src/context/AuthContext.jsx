@@ -49,7 +49,6 @@ export const AuthProvider = ({ children }) => {
           success: false,
           requiresVerification: true,
           email: err.response.data.email,
-          devOtp: err.response.data.devOtp,
           message: msg,
         };
       }
@@ -66,7 +65,6 @@ export const AuthProvider = ({ children }) => {
         return {
           success: true,
           email: res.data.data.email,
-          devOtp: res.data.data.devOtp,
         };
       }
     } catch (err) {
@@ -100,7 +98,7 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post('/auth/resend-otp', { email });
       if (res.data.success) {
         toast.success('A new OTP has been dispatched to your email.');
-        return { success: true, devOtp: res.data.devOtp };
+        return { success: true };
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not resend OTP');

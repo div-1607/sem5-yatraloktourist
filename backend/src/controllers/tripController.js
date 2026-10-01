@@ -247,20 +247,21 @@ const emailTripItinerary = async (req, res) => {
       await trip.save();
       return res.status(200).json({
         success: true,
-        message: 'Journey itinerary emailed successfully.',
+        message: result?.sandboxNotice
+          ? `Journey plan emailed! Delivered to ${result.deliveredTo} (Resend sandbox mode)`
+          : 'Journey itinerary emailed successfully.',
         data: {
           email: req.user.email,
+          deliveredTo: result?.deliveredTo || req.user.email,
           messageId: result?.id || result?.messageId,
           itineraryEmailedAt: trip.itineraryEmailedAt,
         },
       });
     } catch (emailError) {
-      const notConfigured = emailError.code === 'RESEND_NOT_CONFIGURED';
-      return res.status(notConfigured ? 503 : 502).json({
+      console.error('Trip email delivery error:', emailError);
+      return res.status(500).json({
         success: false,
-        message: notConfigured
-          ? 'Email delivery is not configured. Add RESEND_API_KEY to backend/.env and restart the server.'
-          : 'Resend could not deliver the itinerary. Check the Resend account and sender setup, then try again.',
+        message: emailError.message || 'Could not deliver this itinerary email.',
       });
     }
   } catch (error) {

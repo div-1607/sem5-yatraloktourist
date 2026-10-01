@@ -88,7 +88,7 @@ const SignupPage = () => {
     if (result.success) {
       setActiveEmail(formData.email);
       setShowOtpModal(true);
-      toast.success(result.message || 'OTP verification code generated!');
+      toast.success(result.message || 'OTP verification code sent to your email!');
     }
   };
 
@@ -112,7 +112,7 @@ const SignupPage = () => {
   const handleResend = async () => {
     const res = await resendOTP(activeEmail);
     if (res.success) {
-      toast.success(res.message || 'New OTP generated and displayed on screen.');
+      toast.success(res.message || 'A fresh OTP has been sent to your email.');
     }
   };
 
@@ -357,7 +357,10 @@ const SignupPage = () => {
             <div>
               <h3 className="text-lg font-bold text-white">Enter Verification OTP</h3>
               <p className="text-xs text-slate-300 mt-1">
-                Enter the 6-digit code sent to <span className="font-bold text-white">{activeEmail}</span>
+                Enter the 6-digit code sent to your email <span className="font-bold text-white">{activeEmail}</span>
+              </p>
+              <p className="text-[11px] text-amber-400/90 mt-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg py-1 px-2 inline-block">
+                ✉️ Check your inbox &amp; spam folder. Code is valid for 10 minutes.
               </p>
             </div>
 

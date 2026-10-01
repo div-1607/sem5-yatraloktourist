@@ -16,5 +16,7 @@ router.post('/create', optionalAuth, createSOS);
 router.get('/active', protect, adminOnly, getActiveSOS);
 router.get('/all', protect, adminOnly, getAllSOS);
 router.patch('/:id/status', protect, adminOnly, updateSOSStatus);
+router.patch('/:id', protect, adminOnly, updateSOSStatus);
+router.put('/:id', protect, adminOnly, updateSOSStatus);
 
 module.exports = router;

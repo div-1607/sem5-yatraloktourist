@@ -53,7 +53,16 @@ const getDestinations = async (req, res, next) => {
     }
 
     if (category && category !== 'All') {
-      query.category = category;
+      const catTrim = String(category).trim();
+      if (/^historical\s*(sites|places)?$/i.test(catTrim)) {
+        query.category = { $in: ['Historical Places', 'Historical Sites'] };
+      } else if (/^cafes?(\s*&\s*restaurants)?$/i.test(catTrim)) {
+        query.category = { $in: ['Cafes & Restaurants', 'Cafes'] };
+      } else if (/^shopping(\s*areas)?$/i.test(catTrim)) {
+        query.category = { $in: ['Shopping Areas', 'Shopping'] };
+      } else {
+        query.category = new RegExp(`^${escapeRegex(catTrim)}$`, 'i');
+      }
     }
 
     if (crowdFilter && crowdFilter !== 'All') {

@@ -36,8 +36,10 @@ import {
   setSirenMuted,
 } from '../utils/sirenAudio';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
   const [analytics, setAnalytics] = useState(null);
   const [activeSOSList, setActiveSOSList] = useState([]);
   const [signedInUsers, setSignedInUsers] = useState([]);
@@ -71,9 +73,10 @@ const AdminDashboard = () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       stopEmergencySiren();
     };
-  }, []);
+  }, [user]);
 
   const fetchDashboardData = async () => {
+    if (!user || user.role !== 'admin') return;
     setLoading(true);
     try {
       const [analyticsRes, activeSOSRes, usersRes, tripsRes, destinationsRes] = await Promise.all([
@@ -105,6 +108,7 @@ const AdminDashboard = () => {
   };
 
   const pollLiveAlerts = async () => {
+    if (!user || user.role !== 'admin') return;
     try {
       const [activeSOSRes, analyticsRes] = await Promise.all([
         api.get('/sos/active').catch(() => ({ data: { success: false } })),
