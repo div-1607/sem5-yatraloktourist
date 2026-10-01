@@ -16,6 +16,11 @@ const connectDB = async () => {
     return true;
   } catch (err) {
     console.warn(`[MongoDB] Primary connection not detected (${err.message}).`);
+
+    if (process.env.NODE_ENV === 'production') {
+      throw err;
+    }
+
     console.info(`[MongoDB] Starting high-performance In-Memory MongoDB engine...`);
 
     try {

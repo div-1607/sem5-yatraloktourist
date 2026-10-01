@@ -130,23 +130,44 @@ async function seedGeofencesAndHazards() {
     }
 
     console.log('[Geofence Seeder] MongoDB connection ready');
-    console.log('[Geofence Seeder] Connection diagnostics:', {
+    console.log('[Geofence Debug]', {
       mongooseReadyState: mongoose.connection.readyState,
+      mongooseDbName: mongoose.connection.name,
+      mongooseHost: mongoose.connection.host,
       geofenceReadyState: Geofence.db.readyState,
-      geofenceDatabaseName: Geofence.db.name,
-      geofenceCollectionName: Geofence.collection.name,
+      geofenceDbName: Geofence.db.name,
+      geofenceCollection: Geofence.collection.name,
       sameConnection: Geofence.db === mongoose.connection,
-      mongooseDatabaseName: mongoose.connection.name,
     });
 
     if (Geofence.db !== mongoose.connection) {
       throw new Error('Geofence model is not bound to the active MongoDB connection');
     }
 
+    await Geofence.db.asPromise();
+    console.log('[Geofence Collection Debug]', {
+      nativeCollectionBound: Boolean(Geofence.collection.collection),
+      nativeCollectionName: Geofence.collection.collection?.collectionName,
+      buffering: Geofence.collection.buffer,
+      bufferTimeoutMS: Geofence.collection.bufferTimeoutMS,
+      indexes: Geofence.schema.indexes(),
+    });
+    await Geofence.init();
+    console.log('[Geofence MongoDB Indexes]', await Geofence.collection.indexes());
+
     const existingFences = await Geofence.countDocuments();
     console.log(`[Geofence Seeder] Existing geofences: ${existingFences}`);
 
     if (existingFences === 0) {
+      console.log('[Geofence Debug]', {
+        mongooseReadyState: mongoose.connection.readyState,
+        mongooseDbName: mongoose.connection.name,
+        mongooseHost: mongoose.connection.host,
+        geofenceReadyState: Geofence.db.readyState,
+        geofenceDbName: Geofence.db.name,
+        geofenceCollection: Geofence.collection.name,
+        sameConnection: Geofence.db === mongoose.connection,
+      });
       await Geofence.insertMany(initialGeofences);
       console.log(
         `[Geofence Seeder] Seeded ${initialGeofences.length} geofences.`
@@ -163,7 +184,13 @@ async function seedGeofencesAndHazards() {
       );
     }
   } catch (err) {
-    console.error('[Geofence Seeder Error]:', err.message);
+    console.error('[Geofence Seeder Error]', {
+      name: err.name,
+      message: err.message,
+      code: err.code,
+      stack: err.stack,
+    });
+    throw err;
   }
 }
 

@@ -63,4 +63,5 @@ geofenceEventSchema.index({ userId: 1, timestamp: -1 });
 geofenceEventSchema.index({ geofenceId: 1, timestamp: -1 });
 geofenceEventSchema.index({ eventType: 1, alertLevel: 1 });
 
-module.exports = mongoose.models.GeofenceEvent || mongoose.model('GeofenceEvent', geofenceEventSchema);
+module.exports = mongoose.connection.models.GeofenceEvent ||
+  mongoose.connection.model('GeofenceEvent', geofenceEventSchema);

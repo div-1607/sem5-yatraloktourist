@@ -85,4 +85,5 @@ const geofenceSchema = new mongoose.Schema(
 geofenceSchema.index({ center: '2dsphere' });
 geofenceSchema.index({ category: 1, isActive: 1 });
 
-module.exports = mongoose.models.Geofence || mongoose.model('Geofence', geofenceSchema);
+module.exports = mongoose.connection.models.Geofence ||
+  mongoose.connection.model('Geofence', geofenceSchema);
