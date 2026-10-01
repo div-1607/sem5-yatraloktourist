@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../../../backend/src/config/mongoose');
 
 const geofenceEventSchema = new mongoose.Schema(
   {
@@ -63,4 +63,4 @@ geofenceEventSchema.index({ userId: 1, timestamp: -1 });
 geofenceEventSchema.index({ geofenceId: 1, timestamp: -1 });
 geofenceEventSchema.index({ eventType: 1, alertLevel: 1 });
 
-module.exports = mongoose.model('GeofenceEvent', geofenceEventSchema);
+module.exports = mongoose.models.GeofenceEvent || mongoose.model('GeofenceEvent', geofenceEventSchema);

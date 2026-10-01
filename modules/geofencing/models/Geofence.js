@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../../../backend/src/config/mongoose');
 
 const geofenceSchema = new mongoose.Schema(
   {
@@ -77,6 +77,7 @@ const geofenceSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: 'geofences',
   }
 );
 
@@ -84,4 +85,4 @@ const geofenceSchema = new mongoose.Schema(
 geofenceSchema.index({ center: '2dsphere' });
 geofenceSchema.index({ category: 1, isActive: 1 });
 
-module.exports = mongoose.model('Geofence', geofenceSchema);
+module.exports = mongoose.models.Geofence || mongoose.model('Geofence', geofenceSchema);

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../config/mongoose');
 const Geofence = require('../../../modules/geofencing/models/Geofence');
 const HighRiskZone = require('../../../modules/safety-monitor/models/HighRiskZone');
 
@@ -130,8 +130,20 @@ async function seedGeofencesAndHazards() {
     }
 
     console.log('[Geofence Seeder] MongoDB connection ready');
+    console.log('[Geofence Seeder] Connection diagnostics:', {
+      mongooseReadyState: mongoose.connection.readyState,
+      geofenceReadyState: Geofence.db.readyState,
+      geofenceDatabaseName: Geofence.db.name,
+      geofenceCollectionName: Geofence.collection.name,
+      sameConnection: Geofence.db === mongoose.connection,
+      mongooseDatabaseName: mongoose.connection.name,
+    });
 
-    const existingFences = 0;
+    if (Geofence.db !== mongoose.connection) {
+      throw new Error('Geofence model is not bound to the active MongoDB connection');
+    }
+
+    const existingFences = await Geofence.countDocuments();
     console.log(`[Geofence Seeder] Existing geofences: ${existingFences}`);
 
     if (existingFences === 0) {
