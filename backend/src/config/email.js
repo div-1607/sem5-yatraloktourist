@@ -234,6 +234,7 @@ const sendOTPEmail = async (to, otp, purpose = 'signup') => {
     console.error('[OTP Email] Resend request failed.', {
       name: error.name,
       statusCode: error.statusCode || null,
+      message: getSafeProviderMessage(error.message, [resendApiKey, otp, to]),
     });
     throw new Error('OTP email provider request failed.');
   }
@@ -242,6 +243,7 @@ const sendOTPEmail = async (to, otp, purpose = 'signup') => {
     console.error('[OTP Email] Resend rejected delivery.', {
       name: result.error.name || 'ResendError',
       statusCode: result.error.statusCode || null,
+      message: getSafeProviderMessage(result.error.message, [resendApiKey, otp, to]),
     });
     throw new Error('OTP email provider rejected delivery.');
   }
@@ -257,6 +259,14 @@ const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (character)
   '"': '&quot;',
   "'": '&#39;',
 }[character]));
+
+const getSafeProviderMessage = (message, secrets = []) => {
+  let safeMessage = String(message || '').slice(0, 500);
+  for (const secret of secrets) {
+    if (secret) safeMessage = safeMessage.split(String(secret)).join('[REDACTED]');
+  }
+  return safeMessage.replace(/\b\d{6}\b/g, '[REDACTED]');
+};
 
 const sendJourneyEmail = async (to, trip, recipientName) => {
   const resendApiKey = process.env.RESEND_API_KEY?.trim();
@@ -393,6 +403,7 @@ const sendJourneyEmail = async (to, trip, recipientName) => {
     console.error('[Journey Email] Resend request failed.', {
       name: error.name,
       statusCode: error.statusCode || null,
+      message: getSafeProviderMessage(error.message, [resendApiKey, to]),
     });
     throw new Error('Itinerary email provider request failed.');
   }
@@ -401,6 +412,7 @@ const sendJourneyEmail = async (to, trip, recipientName) => {
     console.error('[Journey Email] Resend rejected delivery.', {
       name: result?.error?.name || 'ResendError',
       statusCode: result?.error?.statusCode || null,
+      message: getSafeProviderMessage(result?.error?.message, [resendApiKey, to]),
     });
     throw new Error('Itinerary email provider rejected delivery.');
   }
