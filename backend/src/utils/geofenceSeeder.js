@@ -174,6 +174,25 @@ async function seedGeofencesAndHazards() {
       );
     }
 
+    console.log('[HighRisk Debug]', {
+      mongooseReadyState: mongoose.connection.readyState,
+      mongooseDbName: mongoose.connection.name,
+      mongooseHost: mongoose.connection.host,
+      highRiskReadyState: HighRiskZone.db.readyState,
+      highRiskDbName: HighRiskZone.db.name,
+      highRiskCollection: HighRiskZone.collection.name,
+      sameConnection: HighRiskZone.db === mongoose.connection,
+      nativeCollectionBound: !!HighRiskZone.collection.collection,
+      buffering: HighRiskZone.collection.buffer,
+      bufferTimeoutMS: HighRiskZone.collection.bufferTimeoutMS,
+    });
+
+    if (HighRiskZone.db !== mongoose.connection) {
+      throw new Error('HighRiskZone model is not bound to the active MongoDB connection');
+    }
+
+    await HighRiskZone.db.asPromise();
+    await HighRiskZone.init();
     const existingHazards = await HighRiskZone.countDocuments();
     console.log(`[Hazard Seeder] Existing hazards: ${existingHazards}`);
 

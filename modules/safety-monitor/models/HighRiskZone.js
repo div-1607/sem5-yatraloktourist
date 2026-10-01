@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require('../../../backend/src/config/mongoose');
 
 const highRiskZoneSchema = new mongoose.Schema(
   {
@@ -61,4 +61,5 @@ const highRiskZoneSchema = new mongoose.Schema(
 highRiskZoneSchema.index({ center: '2dsphere' });
 highRiskZoneSchema.index({ riskLevel: 1, isActive: 1 });
 
-module.exports = mongoose.model('HighRiskZone', highRiskZoneSchema);
+module.exports = mongoose.connection.models.HighRiskZone ||
+  mongoose.connection.model('HighRiskZone', highRiskZoneSchema);
