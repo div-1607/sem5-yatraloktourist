@@ -4,9 +4,7 @@ let socket = null;
 
 export const initSocket = () => {
   if (!socket) {
-    const serverUrl = window.location.origin.includes('localhost')
-      ? 'http://localhost:5000'
-      : window.location.origin;
+    const serverUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, '') || window.location.origin;
 
     socket = io(serverUrl, {
       autoConnect: true,
