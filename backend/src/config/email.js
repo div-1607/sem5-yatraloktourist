@@ -44,14 +44,23 @@ const sendBrevoEmail = async ({ to, subject, html, text, privateValues = [] }) =
     throw new Error('Brevo email request failed.');
   }
 
-  const result = await response.json().catch(() => null);
+  const responseBody = await response.text().catch(() => '');
+  let result = null;
+  try {
+    result = responseBody ? JSON.parse(responseBody) : null;
+  } catch {
+    result = null;
+  }
+
   if (!response.ok || !result?.messageId) {
-    console.error('[Brevo Email] Provider rejected delivery.', {
-      statusCode: response.status,
-      code: result?.code || null,
-      message: getSafeProviderMessage(result?.message, [apiKey, to, ...privateValues]),
+    const secrets = [apiKey, to, ...privateValues];
+    const providerMessage = result?.message || responseBody || response.statusText;
+    console.error('[Brevo API Error]', {
+      status: response.status,
+      message: getSafeProviderMessage(providerMessage, secrets),
+      code: getSafeProviderMessage(result?.code, secrets) || null,
     });
-    throw new Error('Brevo rejected the email request.');
+    throw new Error('Email could not be sent. Please try again later.');
   }
 
   console.info('[Brevo Email] Provider accepted delivery.', { statusCode: response.status });
