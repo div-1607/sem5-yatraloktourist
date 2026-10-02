@@ -1,0 +1,6 @@
+```text
+User-agent: *
+Allow: /
+
+Sitemap: https://sem5-yatraloktourist-xv4q.vercel.app/sitemap.xml
+```
